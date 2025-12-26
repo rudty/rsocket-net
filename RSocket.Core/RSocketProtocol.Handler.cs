@@ -46,7 +46,7 @@ namespace RSocket
 			//This is the non-async portion of the handler. SequenceReader<T> and the other stack-allocated items cannot be used in an async context.
 			Task Process(int framelength, ReadOnlySequence<byte> sequence)
 			{
-				var reader = new SequenceReader<byte>(sequence);
+                scoped var reader = new SequenceReader<byte>(sequence);
 				var header = new Header(ref reader, framelength);
 
 				switch (header.Type)

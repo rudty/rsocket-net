@@ -12,11 +12,6 @@ namespace RSocket
 			Error = error;
 		}
 
-		protected RSocketException(SerializationInfo info, StreamingContext context, RSocketProtocol.ErrorCodes error) : base(info, context)
-		{
-			Error = error;
-		}
-
 		public RSocketException(string message, RSocketProtocol.ErrorCodes error) : base(message)
 		{
 			Error = error;

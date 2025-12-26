@@ -192,8 +192,7 @@ namespace RSocket
 			Func<TOutgoing, (ReadOnlySequence<byte> Data, ReadOnlySequence<byte> Metadata)> outgoingTransform) =>
 			Channeler = (request, incoming) => from result in pipeline(requestTransform(request), from item in incoming select incomingTransform(item)) select outgoingTransform(result);
 
-
-		public Func<(ReadOnlySequence<byte> Data, ReadOnlySequence<byte> Metadata), IObservable<(ReadOnlySequence<byte> data, ReadOnlySequence<byte> metadata)>, IAsyncEnumerable<(ReadOnlySequence<byte> data, ReadOnlySequence<byte> metadata)>> Channeler { get; set; } = (request, incoming) => throw new NotImplementedException();
+        public Func<(ReadOnlySequence<byte> Data, ReadOnlySequence<byte> Metadata), IObservable<(ReadOnlySequence<byte> data, ReadOnlySequence<byte> metadata)>, IAsyncEnumerable<(ReadOnlySequence<byte> data, ReadOnlySequence<byte> metadata)>> Channeler { get; set; } = (request, incoming) => throw new NotImplementedException();
 
 
 		void IRSocketProtocol.RequestChannel(in RSocketProtocol.RequestChannel message, ReadOnlySequence<byte> metadata, ReadOnlySequence<byte> data)
@@ -211,7 +210,11 @@ namespace RSocket
 
 		static async Task ForEach<TSource>(IAsyncEnumerable<TSource> source, Func<TSource, Task> action, CancellationToken cancel = default, Func<Task> final = default)
 		{
-			await source.ForEachAsync(item => action(item), cancel);
+            await foreach (var item in source.WithCancellation(cancel))
+            {
+				await action(item);
+            }
+			
 			await final?.Invoke();
 		}
 	}

@@ -10,7 +10,6 @@ namespace RSocket
 {
 	using System.Buffers;
 	using System.Threading;
-	using Microsoft.AspNetCore.Internal;
 
 	public partial class RSocketProtocol
 	{
@@ -772,7 +771,7 @@ namespace RSocket
 			private int FrameLength;
 			public int Remaining => FrameLength - Length;       //TODO Temporary refactoring
 
-			public Header(Types type, Int32 stream = 0, in ReadOnlySequence<byte> metadata = default)
+			public Header(Types type, Int32 stream = 0, scoped in ReadOnlySequence<byte> metadata = default)
 			{
 				FrameLength = 0;
 				Type = type;

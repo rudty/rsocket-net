@@ -21,7 +21,7 @@ namespace RSocket
 		public string DataMimeType { get; set; }
 		public string MetadataMimeType { get; set; }
 
-		public static readonly RSocketOptions Default = new RSocketOptions()
+		public static readonly new RSocketOptions Default = new RSocketOptions()
 		{
 			KeepAlive = TimeSpan.FromMinutes(1),
 			Lifetime = TimeSpan.FromMinutes(3),
