@@ -18,7 +18,7 @@
     <AssemblyVersion>0.2.7</AssemblyVersion>
     <FileVersion>0.2.7</FileVersion>
 	<ProductVersion>0.2.7</ProductVersion>
-	  <RunAnalyzers>false</RunAnalyzers>
+	<Nullable>enable</Nullable>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
