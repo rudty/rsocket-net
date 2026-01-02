@@ -29,9 +29,10 @@ class Program
 		var personmetadata = new Person() { Id = 567, Name = "Meta Person", Address = new Address() { Line1 = "", Line2 = "" } };
 
 		//Make a Raw binary call just to show how it's done.
-		var stream = client.RequestStream(
-			resultmapper: result => (Data: ProtobufNetSerializer.Deserialize<Person>(result.data), Metadata: ProtobufNetSerializer.Deserialize<Person>(result.metadata)),
-			data: ProtobufNetSerializer.Serialize(persondata), metadata: ProtobufNetSerializer.Serialize(personmetadata));
+		// var stream = client.RequestStream(
+			// resultmapper: result => (Data: ProtobufNetSerializer.Deserialize<Person>(result.data), Metadata: ProtobufNetSerializer.Deserialize<Person>(result.metadata)),
+			// data: ProtobufNetSerializer.Serialize(persondata), metadata: ProtobufNetSerializer.Serialize(personmetadata));
+			client.RequestStream(persondata, personmetadata);
 
 		await foreach (var persons in stream)
 		{
@@ -62,8 +63,8 @@ class EchoServer : RSocketServer
 {
 	public EchoServer(IRSocketTransport transport, RSocketOptions options = default, int echoes = 2) : base(transport, options)
 	{
-		Stream(request => request,
-			request => AsyncEnumerable.Repeat(request, echoes),
-			result => result);
+		// Stream(request => request,
+		// 	request => AsyncEnumerable.Repeat(request, echoes),
+		// 	result => result);
 	}
 }
