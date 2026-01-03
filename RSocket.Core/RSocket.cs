@@ -1,5 +1,6 @@
 namespace RSocket;
 
+using global::RSocket.Payloads;
 using System;
 using System.Buffers;
 using System.Collections.Concurrent;
@@ -45,12 +46,13 @@ public partial class RSocket : IRSocketProtocol
 	private int _streamId = 1 - 2;       //SPEC: Stream IDs on the client MUST start at 1 and increment by 2 sequentially, such as 1, 3, 5, 7, etc
 	private int NewStreamId() => Interlocked.Add(ref _streamId, 2);  //TODO SPEC: To reuse or not... Should tear down the client if this happens or have to skip in-use IDs.
 
-	private readonly ConcurrentDictionary<int, IRSocketStream> Dispatcher = new ConcurrentDictionary<int, IRSocketStream>();
+	private readonly ConcurrentDictionary<int, IRSocketStream> Dispatcher = new();
 
-	private int StreamDispatch(IRSocketStream transform)
+	private int RegisterDispatcher(IRSocketStream transform)
 	{
 		var id = NewStreamId();
-		 Dispatcher[id] = transform; return id;
+		 Dispatcher[id] = transform;
+		return id;
 	}
 	//TODO Stream Destruction - i.e. removal from the dispatcher.
 
@@ -64,7 +66,10 @@ public partial class RSocket : IRSocketProtocol
 	/// <param name="cancel">Cancellation for the handler. Requesting cancellation will stop message handling.</param>
 	/// <returns>The handler task.</returns>
 	public Task Connect(CancellationToken cancel = default) => RSocketProtocol.Handler(this, Transport.Input, cancel);
-	public Task Setup(TimeSpan keepalive, TimeSpan lifetime, string metadataMimeType = null, string dataMimeType = null, ReadOnlySequence<byte> data = default, ReadOnlySequence<byte> metadata = default) => new RSocketProtocol.Setup(keepalive, lifetime, metadataMimeType: metadataMimeType, dataMimeType: dataMimeType, data: data, metadata: metadata).WriteFlush(Transport.Output, data: data, metadata: metadata);
+	public Task Setup(TimeSpan keepalive, TimeSpan lifetime, string? metadataMimeType = null, string? dataMimeType = null, ReadOnlySequence<byte> data = default, ReadOnlySequence<byte> metadata = default)
+	{
+		return new RSocketProtocol.Setup(keepalive, lifetime, metadataMimeType: metadataMimeType, dataMimeType: dataMimeType, data: data, metadata: metadata).WriteFlush(Transport.Output, data: data, metadata: metadata);
+	}
 
 	//TODO SPEC: A requester MUST not send PAYLOAD frames after the REQUEST_CHANNEL frame until the responder sends a REQUEST_N frame granting credits for number of PAYLOADs able to be sent.
 	public async ValueTask RequestChannel(
@@ -72,7 +77,7 @@ public partial class RSocket : IRSocketProtocol
 		IAsyncEnumerable<DataAndMetadata> clientInputEnumerable,
 		int initial = RSocketOptions.INITIALDEFAULT)
 	{
-		var id = StreamDispatch(stream);
+		var id = RegisterDispatcher(stream);
 		var clientInputEnumerableWithCancellation = clientInputEnumerable.WithCancellation(cancellationToken);
 
 		await foreach (var dataAndMetadata in clientInputEnumerableWithCancellation)
@@ -84,55 +89,50 @@ public partial class RSocket : IRSocketProtocol
 				initialRequest: Options.GetInitialRequestSize(initial));
 			await requestChannel.WriteFlush(Transport.Output, dataAndMetadata.data, dataAndMetadata.metadata);
 		}
-
-
 	}
 
-	// protected class ChannelHandler : IRSocketChannel       //TODO hmmm...
-	// {
-	// 	readonly RSocket Socket;
-	// 	readonly int Stream;
-	//
-	// 	public ChannelHandler(RSocket socket, int stream) { Socket = socket; Stream = stream; }
-	//
-	// 	public Task Send(RefDataAndMetadata value)
-	// 	{
-	// 		if (!Socket.Dispatcher.ContainsKey(Stream)) { throw new InvalidOperationException("Channel is closed"); }
-	// 		return new RSocketProtocol.Payload(Stream, value.data, value.metadata, next: true).WriteFlush(Socket.Transport.Output, value.data, value.metadata);
-	// 	}
-	// }
+	public async ValueTask<IAsyncEnumerable<DataAndMetadata>> RequestStream(ReadOnlySequence<byte> data, ReadOnlySequence<byte> metadata = default, int initial = RSocketOptions.INITIALDEFAULT)
+	{
+		var enumerable = new StreamAsyncEnumerator<DataAndMetadata>();
+		var id = RegisterDispatcher(enumerable);
+		await new RSocketProtocol.RequestStream(id, data, metadata, initialRequest: Options.GetInitialRequestSize(initial)).WriteFlush(Transport.Output, data, metadata);
+		return enumerable;
+	}
 
 	public async ValueTask RequestStream(IRSocketStream stream, ReadOnlySequence<byte> data, ReadOnlySequence<byte> metadata = default, int initial = RSocketOptions.INITIALDEFAULT)
 	{
-		var id = StreamDispatch(stream);
+		var id = RegisterDispatcher(stream);
 		await new RSocketProtocol.RequestStream(id, data, metadata, initialRequest: Options.GetInitialRequestSize(initial)).WriteFlush(Transport.Output, data, metadata);
 	}
 
-	public async ValueTask RequestResponse(IRSocketStream stream, ReadOnlySequence<byte> data, ReadOnlySequence<byte> metadata = default)
+	public ValueTask<DataAndMetadata> RequestResponse(ReadOnlySequence<byte> data, ReadOnlySequence<byte> metadata = default)
 	{
-		var id = StreamDispatch(stream);
-		await new RSocketProtocol.RequestResponse(id, data, metadata).WriteFlush(Transport.Output, data, metadata);
+		var stream = SingleResponseValueTaskSource<DataAndMetadata>.Create();
+		var id = RegisterDispatcher(stream);
+		new RSocketProtocol.RequestResponse(id, data, metadata).WriteFlush(Transport.Output, data, metadata);
+		return new ValueTask<DataAndMetadata>(stream, stream.Version);
 	}
 
 	public void RequestFireAndForget(IRSocketStream stream, ReadOnlySequence<byte> data, ReadOnlySequence<byte> metadata = default)
 	{
-		var id = StreamDispatch(stream);
+		var id = RegisterDispatcher(stream);
 		new RSocketProtocol.RequestFireAndForget(id, data, metadata).WriteFlush(Transport.Output, data, metadata);
 	}
 
-	public void Payload(in RSocketProtocol.Payload message, ReadOnlySequence<byte> metadata, ReadOnlySequence<byte> data)
+	public void OnReceivePayload(in RSocketProtocol.Payload message, ReadOnlySequence<byte> metadata, ReadOnlySequence<byte> data)
 	{
 		//Console.WriteLine($"{value.Header.Stream:0000}===>{Encoding.UTF8.GetString(value.Data.ToArray())}");
 		if (Dispatcher.TryGetValue(message.Stream, out var transform))
 		{
 			if (message.IsNext)
 			{
-				transform.OnNext(new DataAndMetadata(metadata, data));
+				transform.OnNext(new DataAndMetadata(data, metadata));
 			}
 
 			if (message.IsComplete)
 			{
 				transform.OnCompleted();
+				Dispatcher.TryRemove(message.Stream, out _);
 			}
 		}
 		else
@@ -189,9 +189,26 @@ public partial class RSocket : IRSocketProtocol
 		var streamId = message.Stream;
 		// TODO. NEXT 를 HEADER 로 옮김.
 		var payload = new RSocketProtocol.Payload(streamId, next: true);
-		Payload(payload, metadata, data);
-	}
+		//Payload(payload, metadata, data);
 
+		if (Dispatcher.TryGetValue(message.Stream, out var transform))
+		{
+			transform.OnNext(new DataAndMetadata(metadata, data));
+			//if (message.IsNext)
+			//{
+			//	transform.OnNext(new DataAndMetadata(metadata, data));
+			//}
+
+			//if (message.IsComplete)
+			//{
+			//	transform.OnCompleted();
+			//}
+		}
+		else
+		{
+			//TODO Log missing stream here.
+		}
+	}
 
 	//TODO, probably need to have an IAE<T> pipeline overload too.
 
@@ -199,7 +216,7 @@ public partial class RSocket : IRSocketProtocol
 	{
 		var streamId = message.Stream;
 		var payload = new RSocketProtocol.Payload(streamId, next: true);
-		Payload(payload, metadata, data);
+		OnReceivePayload(payload, metadata, data);
 		// var outgoing = Observable.Create<DataAndMetadata>((d) =>
 		// {
 		// 	return () => StreamDispatch(streamId, d);

@@ -1,4 +1,4 @@
-﻿namespace RSocket;
+namespace RSocket;
 
 using System;
 using System.Buffers;
@@ -19,10 +19,12 @@ public sealed class BufferWriter
 		_used = 0;
 	}
 
-
 	private Span<byte> GetBuffer(int needed)
 	{
-		Debug.Assert(needed > 0);
+		if (needed <= 0)
+		{
+			return Span<byte>.Empty;
+		}
 
 		var remaining = _memory.Length - _used;
 		if (remaining >= needed)
@@ -91,6 +93,11 @@ public sealed class BufferWriter
 
 	public int Write(ReadOnlySpan<byte> values)
 	{
+		if (values.IsEmpty)
+		{
+			return 0;
+		}
+
 		var span = GetBuffer(values.Length);
 		values.CopyTo(span);
 		_used += values.Length;

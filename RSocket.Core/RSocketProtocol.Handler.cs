@@ -15,7 +15,7 @@ namespace RSocket
 		static void Decoded(string message) => Console.WriteLine(message);
 		static void OnSetup(IRSocketProtocol sink, in RSocketProtocol.Setup message) => sink.Setup(message);
 		static void OnError(IRSocketProtocol sink, in RSocketProtocol.Error message) => sink.Error(message);
-		static void OnPayload(IRSocketProtocol sink, in RSocketProtocol.Payload message, ReadOnlySequence<byte> metadata, ReadOnlySequence<byte> data) => sink.Payload(message, metadata, data);
+		static void OnPayload(IRSocketProtocol sink, in RSocketProtocol.Payload message, ReadOnlySequence<byte> metadata, ReadOnlySequence<byte> data) => sink.OnReceivePayload(message, metadata, data);
 		static void OnRequestStream(IRSocketProtocol sink, in RSocketProtocol.RequestStream message, ReadOnlySequence<byte> metadata, ReadOnlySequence<byte> data) => sink.RequestStream(message, metadata, data);
 		static void OnRequestResponse(IRSocketProtocol sink, in RSocketProtocol.RequestResponse message, ReadOnlySequence<byte> metadata, ReadOnlySequence<byte> data) => sink.RequestResponse(message, metadata, data);
 		static void OnRequestFireAndForget(IRSocketProtocol sink, in RSocketProtocol.RequestFireAndForget message, ReadOnlySequence<byte> metadata, ReadOnlySequence<byte> data) => sink.RequestFireAndForget(message, metadata, data);
