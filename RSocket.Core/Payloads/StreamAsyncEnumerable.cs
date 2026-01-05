@@ -16,6 +16,7 @@ public sealed class StreamAsyncEnumerator<T> : IAsyncEnumerable<T>, IAsyncEnumer
 
 	private ExceptionDispatchInfo? _error;
 	private bool _isDisposed;
+	private bool _isCompleted;
 	private bool _isWaiting; // 소비자가 데이터를 기다리고 있는지 여부
 	private T? _current;
 
@@ -52,7 +53,7 @@ public sealed class StreamAsyncEnumerator<T> : IAsyncEnumerable<T>, IAsyncEnumer
 			_error?.Throw();
 
 			// 3. 이미 완료되었다면 false 반환
-			if (_isDisposed)
+			if (_isCompleted)
 			{
 				return new ValueTask<bool>(false);
 			}
@@ -68,7 +69,7 @@ public sealed class StreamAsyncEnumerator<T> : IAsyncEnumerable<T>, IAsyncEnumer
 	{
 		lock (_gate)
 		{
-			if (_isDisposed || _error is not null)
+			if (_isCompleted || _error is not null)
 			{
 				return;
 			}
@@ -105,7 +106,7 @@ public sealed class StreamAsyncEnumerator<T> : IAsyncEnumerable<T>, IAsyncEnumer
 	{
 		lock (_gate)
 		{
-			_isDisposed = true;
+			_isCompleted = true;
 			if (_isWaiting)
 			{
 				_isWaiting = false;
@@ -120,34 +121,35 @@ public sealed class StreamAsyncEnumerator<T> : IAsyncEnumerable<T>, IAsyncEnumer
 
 		lock (_gate)
 		{
-			// 이미 종료되었다면 중복 처리 방지
-			if (_isDisposed && _buffer.Count == 0)
+			// 1. 이미 Dispose가 완료되었다면 중복 실행 방지
+			if (_isDisposed)
 			{
 				return;
 			}
 
 			_isDisposed = true;
+
+			// 2. 스트림 상태 정리
+			_isCompleted = true;
 			_buffer.Clear();
 
-			// 1. 대기 중인 소비자(MoveNextAsync)가 있다면 깨워줍니다.
+			// 3. 아직 MoveNextAsync로 대기 중인 소비자가 있다면 깨워줌
 			if (_isWaiting)
 			{
 				_isWaiting = false;
-				// 에러를 던지거나 false를 반환하여 안전하게 종료시킴
+				// 에러를 던지지 않고 false를 반환하여 foreach가 자연스럽게 끝나게 함
 				_core.SetResult(false);
 			}
 
-			// 2. 등록 정보를 로컬 변수에 옮기고 필드는 초기화
+			// 4. 등록 정보를 로컬로 옮기고 필드 초기화
 			reg = _cancelRegistration;
 			_cancelRegistration = default;
 		}
 
-		// 3. lock 밖에서 안전하게 등록 해제
-		// DisposeAsync는 취소 콜백이 실행 중이라면 그 콜백이 끝날 때까지 비동기로 기다려줍니다.
+		// 5. lock 밖에서 안전하게 토큰 등록 해제 (무조건 실행됨)
+		// reg가 default(비어있음)인 경우 DisposeAsync는 아무 작업도 하지 않고 즉시 완료됩니다.
 		await reg.DisposeAsync();
 	}
-
-	// --- IValueTaskSource 구현부 (Core에 위임) ---
 
 	public bool GetResult(short token)
 	{
