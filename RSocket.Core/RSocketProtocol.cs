@@ -679,17 +679,16 @@ namespace RSocket
 
 			public Setup(TimeSpan keepalive, TimeSpan lifetime, string? metadataMimeType = null, string? dataMimeType = null, ReadOnlySequence<byte> data = default, ReadOnlySequence<byte> metadata = default) : this((int)keepalive.TotalMilliseconds, (int)lifetime.TotalMilliseconds, string.IsNullOrEmpty(metadataMimeType) ? string.Empty : metadataMimeType, string.IsNullOrEmpty(dataMimeType) ? string.Empty : dataMimeType, data: data, metadata: metadata) { }
 
-			public Setup(Int32 keepalive, Int32 lifetime, string? metadataMimeType, string? dataMimeType, byte[] resumeToken = default, ReadOnlySequence<byte> data = default, ReadOnlySequence<byte> metadata = default)
+			public Setup(Int32 keepalive, Int32 lifetime, string? metadataMimeType, string? dataMimeType, byte[]? resumeToken = null, ReadOnlySequence<byte> data = default, ReadOnlySequence<byte> metadata = default)
 			{
 				Header = new Header(Types.Setup, metadata: metadata);
 				MajorVersion = MAJOR_VERSION;
 				MinorVersion = MINOR_VERSION;
 				KeepAlive = keepalive;
 				Lifetime = lifetime;
-				ResumeToken = resumeToken;
+				ResumeToken = resumeToken ?? Array.Empty<byte>();
 				MetadataMimeType = metadataMimeType ?? RSocketOptions.Default.MetadataMimeType;
 				DataMimeType = dataMimeType ?? RSocketOptions.Default.DataMimeType;
-				ResumeToken = resumeToken;		//TODO Two of these?
 				MetadataLength = (int)metadata.Length;
 				DataLength = (int)data.Length;
 				HasResume = resumeToken != default && resumeToken.Length > 0;
@@ -716,7 +715,6 @@ namespace RSocket
 				MetadataLength = DataLength = 0;	//Initialize so we can use InnerLength.
 				TryReadRemaining(header, InnerLength, ref reader, out MetadataLength, out DataLength);
 			}
-
 
 			public bool Validate(bool canContinue = false)
 			{

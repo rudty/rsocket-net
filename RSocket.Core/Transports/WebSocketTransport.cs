@@ -1,3 +1,5 @@
+#pragma warning disable
+
 using System;
 using System.Collections.Generic;
 using System.IO.Pipelines;
@@ -79,7 +81,7 @@ namespace RSocket.Transports
 
 					public WebSocketManager(WebSocketTransport transport, CancellationToken cancel = default) { Transport = transport; Cancel = cancel; }
 
-					public async Task<WebSocket> AcceptWebSocketAsync(string subprotocol, IDictionary<string, string> headers)     //https://github.com/aspnet/AspNetCore/blob/master/src/Middleware/WebSockets/src/WebSocketMiddleware.cs
+					public async Task<WebSocket> AcceptWebSocketAsync(string? subprotocol, IDictionary<string, string> headers)     //https://github.com/aspnet/AspNetCore/blob/master/src/Middleware/WebSockets/src/WebSocketMiddleware.cs
 					{
 						//So in the SignalR code, this is where the WebSocketOptions are actually applied. So junky, so overabstracted. This is why the constructors are inverted so short out all of this madness.
 						var socket = new ClientWebSocket();
@@ -451,9 +453,9 @@ namespace RSocket.Transports
 				private static readonly Action<ILogger, Exception> _closedPrematurely =
 					LoggerMessage.Define(LogLevel.Debug, new EventId(14, "ClosedPrematurely"), "Socket connection closed prematurely.");
 
-				public static void SocketOpened(ILogger logger, string subProtocol)
+				public static void SocketOpened(ILogger logger, string? subProtocol)
 				{
-					_socketOpened(logger, subProtocol, null);
+					_socketOpened(logger, subProtocol ?? string.Empty, new Exception());
 				}
 
 				public static void SocketClosed(ILogger logger)

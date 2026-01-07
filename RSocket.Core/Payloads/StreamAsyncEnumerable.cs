@@ -120,13 +120,22 @@ public sealed class StreamAsyncEnumerator<T> : IAsyncEnumerable<T>, IAsyncEnumer
 
 	public void OnCompleted()
 	{
+		DoComplete();
+	}
+
+	private void DoComplete()
+	{
 		lock (_gate)
 		{
 			_isCompleted = true;
 			if (_isWaiting)
 			{
 				_isWaiting = false;
-				_core.SetResult(false);
+				try
+				{
+					_core.SetResult(false);
+				}
+				catch { }
 			}
 		}
 	}
@@ -146,17 +155,11 @@ public sealed class StreamAsyncEnumerator<T> : IAsyncEnumerable<T>, IAsyncEnumer
 			_isDisposed = true;
 
 			// 2. 스트림 상태 정리
-			_isCompleted = true;
 			_buffer.Clear();
 			_current = default!;
 
 			// 3. 아직 MoveNextAsync로 대기 중인 소비자가 있다면 깨워줌
-			if (_isWaiting)
-			{
-				_isWaiting = false;
-				// 에러를 던지지 않고 false를 반환하여 foreach가 자연스럽게 끝나게 함
-				_core.SetResult(false);
-			}
+			DoComplete();
 
 			// 4. 등록 정보를 로컬로 옮기고 필드 초기화
 			reg = _cancelRegistration;
