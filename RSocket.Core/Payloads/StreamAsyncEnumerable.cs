@@ -20,12 +20,26 @@ public sealed class StreamAsyncEnumerator<T> : IAsyncEnumerable<T>, IAsyncEnumer
 	private bool _isWaiting; // 소비자가 데이터를 기다리고 있는지 여부
 	private T? _current;
 
+	/// <summary>
+	/// GetAsyncEnumerator 중복 호출 제거
+	/// </summary>
+	private bool _isUsed;
+
 	public StreamAsyncEnumerator()
 	{
 	}
 
 	public IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = default)
 	{
+		ThrowIfDisposed();
+
+		if (_isUsed)
+		{
+			throw new InvalidOperationException("This enumerable can only be consumed once.");
+		}
+
+		_isUsed = true;
+
 		_cancelRegistration = cancellationToken.Register(() =>
 		{
 			lock (_gate)
@@ -42,6 +56,8 @@ public sealed class StreamAsyncEnumerator<T> : IAsyncEnumerable<T>, IAsyncEnumer
 	{
 		lock (_gate)
 		{
+			ThrowIfDisposed();
+
 			// 1. 버퍼에 데이터가 있으면 즉시 반환
 			if (_buffer.Count > 0)
 			{
@@ -132,6 +148,7 @@ public sealed class StreamAsyncEnumerator<T> : IAsyncEnumerable<T>, IAsyncEnumer
 			// 2. 스트림 상태 정리
 			_isCompleted = true;
 			_buffer.Clear();
+			_current = default!;
 
 			// 3. 아직 MoveNextAsync로 대기 중인 소비자가 있다면 깨워줌
 			if (_isWaiting)
@@ -151,18 +168,13 @@ public sealed class StreamAsyncEnumerator<T> : IAsyncEnumerable<T>, IAsyncEnumer
 		await reg.DisposeAsync();
 	}
 
-	public bool GetResult(short token)
-	{
-		lock (_gate)
-		{
-			return _core.GetResult(token);
-		}
-	}
-
+	public bool GetResult(short token) => _core.GetResult(token);
 	public ValueTaskSourceStatus GetStatus(short token) => _core.GetStatus(token);
 
 	public void OnCompleted(Action<object?> continuation, object? state, short token, ValueTaskSourceOnCompletedFlags flags)
 	{
 		_core.OnCompleted(continuation, state, token, flags);
 	}
+
+	private void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(_isDisposed, this);
 }

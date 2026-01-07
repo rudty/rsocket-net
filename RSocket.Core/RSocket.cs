@@ -99,12 +99,6 @@ public partial class RSocket : IRSocketProtocol
 		return enumerable;
 	}
 
-	public async ValueTask RequestStream(IRSocketStream stream, ReadOnlySequence<byte> data, ReadOnlySequence<byte> metadata = default, int initial = RSocketOptions.INITIALDEFAULT)
-	{
-		var id = RegisterDispatcher(stream);
-		await new RSocketProtocol.RequestStream(id, data, metadata, initialRequest: Options.GetInitialRequestSize(initial)).WriteFlush(Transport.Output, data, metadata);
-	}
-
 	public ValueTask<DataAndMetadata> RequestResponse(ReadOnlySequence<byte> data, ReadOnlySequence<byte> metadata = default)
 	{
 		var stream = SingleResponseValueTaskSource<DataAndMetadata>.Create();
