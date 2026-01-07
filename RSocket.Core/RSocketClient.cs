@@ -14,9 +14,9 @@ namespace RSocket
 		Task Handler;
 		RSocketOptions Options { get; set; }
 
-		public RSocketClient(IRSocketTransport transport, RSocketOptions options = default) : base(transport, options) { }
+		public RSocketClient(IRSocketTransport transport, RSocketOptions? options = default) : base(transport, options) { }
 
-		public Task ConnectAsync(RSocketOptions options = default, byte[] data = default, byte[] metadata = default) => ConnectAsync(options ?? RSocketOptions.Default, data: data == default ? default : new ReadOnlySequence<byte>(data), metadata: metadata == default ? default : new ReadOnlySequence<byte>(metadata));
+		public Task ConnectAsync(RSocketOptions? options = default, byte[]? data = null, byte[]? metadata = null) => ConnectAsync(options ?? RSocketOptions.Default, data: data == default ? default : new ReadOnlySequence<byte>(data), metadata: metadata == default ? default : new ReadOnlySequence<byte>(metadata));
 
 		public async Task ConnectAsync(RSocketOptions options, ReadOnlySequence<byte> metadata, ReadOnlySequence<byte> data)
 		{

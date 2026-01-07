@@ -56,7 +56,7 @@ public partial class RSocket : IRSocketProtocol
 	}
 	//TODO Stream Destruction - i.e. removal from the dispatcher.
 
-	public RSocket(IRSocketTransport transport, PrefetchOptions options = default)
+	public RSocket(IRSocketTransport transport, PrefetchOptions? options = default)
 	{
 		Transport = transport;
 		Options = options ?? PrefetchOptions.Default;

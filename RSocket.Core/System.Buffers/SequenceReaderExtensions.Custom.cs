@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
@@ -33,7 +33,7 @@ namespace System.Buffers
         /// <param name="value">The resulting value.</param>
         /// <param name="encoding">The Encoding of the string bytes. Defaults to ASCII.</param>
         /// <returns>True if the sequence had enough to fill the string.</returns>
-        public static bool TryReadPrefix(ref this SequenceReader<byte> reader, out string value, Encoding encoding = default)
+        public static bool TryReadPrefix(ref this SequenceReader<byte> reader, out string? value, Encoding? encoding = null)
         {
             // 1. 최소 길이(1바이트) 체크 및 길이 접두사 엿보기
             var remaining = reader.Remaining;
@@ -86,7 +86,7 @@ namespace System.Buffers
 
         //TODO DOCS
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool TryRead(ref this SequenceReader<byte> reader, out string value, int length, Encoding encoding = default)
+        public static bool TryRead(ref this SequenceReader<byte> reader, out string? value, int length, Encoding? encoding = null)
         {
             // 1. 데이터 부족 시 조기 리턴
             if (reader.Remaining < length)

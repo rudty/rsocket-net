@@ -1,25 +1,22 @@
-using System;
-using System.Runtime.Serialization;
+namespace RSocket;
 
-namespace RSocket
+public class RSocketException : Exception
 {
-	public class RSocketException : Exception
+	public RSocketProtocol.ErrorCodes Error { get; }
+
+	public RSocketException(RSocketProtocol.ErrorCodes error)
 	{
-		public RSocketProtocol.ErrorCodes Error { get; }
+		Error = error;
+	}
 
-		public RSocketException(RSocketProtocol.ErrorCodes error)
-		{
-			Error = error;
-		}
+	public RSocketException(string? message, RSocketProtocol.ErrorCodes error) : base(message)
+	{
+		Error = error;
+	}
 
-		public RSocketException(string message, RSocketProtocol.ErrorCodes error) : base(message)
-		{
-			Error = error;
-		}
-
-		public RSocketException(string message, Exception innerException, RSocketProtocol.ErrorCodes error) : base(message, innerException)
-		{
-			Error = error;
-		}
+	public RSocketException(string? message, Exception innerException, RSocketProtocol.ErrorCodes error) : base(message, innerException)
+	{
+		Error = error;
 	}
 }
+

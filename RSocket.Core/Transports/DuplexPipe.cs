@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO.Pipelines;
 using System.Text;
@@ -28,7 +28,7 @@ namespace RSocket.Transports
 
 		public DuplexPipe(PipeWriter writer, PipeReader reader) { Input = reader; Output = writer; }
 
-		public static (IDuplexPipe Front, IDuplexPipe Back) CreatePair(PipeOptions fronttobackOptions, PipeOptions backtofrontOptions)
+		public static (IDuplexPipe Front, IDuplexPipe Back) CreatePair(PipeOptions? fronttobackOptions, PipeOptions? backtofrontOptions)
 		{
 			Pipe FrontToBack = new Pipe(backtofrontOptions ?? DefaultOptions), BackToFront = new Pipe(fronttobackOptions ?? DefaultOptions);
 			return (new DuplexPipe(FrontToBack.Writer, BackToFront.Reader), new DuplexPipe(BackToFront.Writer, FrontToBack.Reader));

@@ -596,7 +596,7 @@ namespace RSocket
 			private Header header;
 			private int dataLength;
 
-			public string ErrorText { get; }
+			public string? ErrorText { get; }
 			public ErrorCodes ErrorCode { get; }
 
 			private const int InnerLength = sizeof(int);
@@ -618,7 +618,7 @@ namespace RSocket
 				reader.TryReadBigEndian(out int errorCode);
 				ErrorCode = (ErrorCodes)errorCode;
 				TryReadRemaining(header, InnerLength, ref reader, out _, out dataLength);
-				reader.TryRead(out string text, dataLength);
+				reader.TryRead(out var text, dataLength);
 				ErrorText = text;
 			}
 
@@ -679,7 +679,7 @@ namespace RSocket
 
 			public Setup(TimeSpan keepalive, TimeSpan lifetime, string? metadataMimeType = null, string? dataMimeType = null, ReadOnlySequence<byte> data = default, ReadOnlySequence<byte> metadata = default) : this((int)keepalive.TotalMilliseconds, (int)lifetime.TotalMilliseconds, string.IsNullOrEmpty(metadataMimeType) ? string.Empty : metadataMimeType, string.IsNullOrEmpty(dataMimeType) ? string.Empty : dataMimeType, data: data, metadata: metadata) { }
 
-			public Setup(Int32 keepalive, Int32 lifetime, string metadataMimeType, string dataMimeType, byte[] resumeToken = default, ReadOnlySequence<byte> data = default, ReadOnlySequence<byte> metadata = default)
+			public Setup(Int32 keepalive, Int32 lifetime, string? metadataMimeType, string? dataMimeType, byte[] resumeToken = default, ReadOnlySequence<byte> data = default, ReadOnlySequence<byte> metadata = default)
 			{
 				Header = new Header(Types.Setup, metadata: metadata);
 				MajorVersion = MAJOR_VERSION;
@@ -687,8 +687,8 @@ namespace RSocket
 				KeepAlive = keepalive;
 				Lifetime = lifetime;
 				ResumeToken = resumeToken;
-				MetadataMimeType = metadataMimeType;
-				DataMimeType = dataMimeType;
+				MetadataMimeType = metadataMimeType ?? RSocketOptions.Default.MetadataMimeType;
+				DataMimeType = dataMimeType ?? RSocketOptions.Default.DataMimeType;
 				ResumeToken = resumeToken;		//TODO Two of these?
 				MetadataLength = (int)metadata.Length;
 				DataLength = (int)data.Length;
@@ -798,7 +798,7 @@ namespace RSocket
 			}
 
 			public override string ToString() => $"{Stream:0000} {Type}";
-			public string ToStringFlags(IEnumerable<(bool, string, string)> flags = default) => new[] { (CanIgnore, nameof(CanIgnore), string.Empty), (HasMetadata, nameof(HasMetadata), string.Empty) }.Concat<(bool Condition, string True, string False)>(flags ?? Enumerable.Empty<(bool, string, string)>()).Aggregate(new StringBuilder($"{{{Flags:X3}"), (s, i) => s.Append(i.Condition ? "|" + i.True : i.False)).ToString().TrimEnd(',') + "}";
+			public string ToStringFlags(IEnumerable<(bool, string, string)>? flags = default) => new[] { (CanIgnore, nameof(CanIgnore), string.Empty), (HasMetadata, nameof(HasMetadata), string.Empty) }.Concat<(bool Condition, string True, string False)>(flags ?? Enumerable.Empty<(bool, string, string)>()).Aggregate(new StringBuilder($"{{{Flags:X3}"), (s, i) => s.Append(i.Condition ? "|" + i.True : i.False)).ToString().TrimEnd(',') + "}";
 		}
 	}
 }

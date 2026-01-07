@@ -31,8 +31,8 @@ namespace RSocket.Transports
 		public PipeReader Input => Front.Input;
 		public PipeWriter Output => Front.Output;
 
-		public SocketTransport(string url, PipeOptions outputoptions = default, PipeOptions inputoptions = default) : this(new Uri(url), outputoptions, inputoptions) { }
-		public SocketTransport(Uri url, PipeOptions outputoptions = default, PipeOptions inputoptions = default, WebSocketOptions options = default)
+		public SocketTransport(string url, PipeOptions? outputoptions = null, PipeOptions? inputoptions = null) : this(new Uri(url), outputoptions, inputoptions) { }
+		public SocketTransport(Uri url, PipeOptions? outputoptions = null, PipeOptions? inputoptions = null, WebSocketOptions? options = null)
 		{
 			Url = url;
 			if (string.Compare(url.Scheme, "TCP", true) != 0) { throw new ArgumentException("Only TCP connections are supported.", nameof(Url)); }
@@ -171,7 +171,7 @@ namespace RSocket.Transports
 
 		private async Task StartSending(Socket socket)
 		{
-			Exception error = null;
+			Exception? error = null;
 
 			try
 			{

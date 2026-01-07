@@ -35,6 +35,11 @@
 
   <PropertyGroup>
 	  <SignAssembly>True</SignAssembly>
+	  <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+	
+  <PropertyGroup>
+	  <NoWarn>$(NoWarn);IDE0049</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
