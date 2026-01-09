@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 using System.Buffers;
+using RSocket.Payloads;
 
 namespace RSocket.Transports
 {
@@ -42,6 +43,11 @@ namespace RSocket.Transports
 		}
 
 		public ValueTask StopAsync() => ValueTask.CompletedTask;      //TODO More graceful shutdown
+
+		public void SendAsync(FrameBuffer frame)
+		{
+			throw new NotImplementedException();
+		}
 
 
 		//This class is based heavily on the SignalR WebSocketsTransport class from the AspNetCore project. It was merged as release/2.2 as of this snapshot.
@@ -319,78 +325,78 @@ namespace RSocket.Transports
 
 			private async Task StartSending(WebSocket socket)
 			{
-				Exception error = null;
+				//Exception error = null;
 
-				try
-				{
-					while (true)
-					{
-						var result = await _application.Input.ReadAsync();
-						var buffer = result.Buffer;
-						var consumed = buffer.Start;        //RSOCKET Framing
-															// Get a frame from the application
+				//try
+				//{
+				//	while (true)
+				//	{
+				//		var result = await _application.Input.ReadAsync();
+				//		var buffer = result.Buffer;
+				//		var consumed = buffer.Start;        //RSOCKET Framing
+				//											// Get a frame from the application
 
-						try
-						{
-							if (result.IsCanceled)
-							{
-								break;
-							}
+				//		try
+				//		{
+				//			if (result.IsCanceled)
+				//			{
+				//				break;
+				//			}
 
-							if (!buffer.IsEmpty)
-							{
-								try
-								{
-									Log.SendPayload(_logger, buffer.Length);
+				//			if (!buffer.IsEmpty)
+				//			{
+				//				try
+				//				{
+				//					Log.SendPayload(_logger, buffer.Length);
 
-									var webSocketMessageType = (_connection.ActiveFormat == TransferFormat.Binary
-										? WebSocketMessageType.Binary
-										: WebSocketMessageType.Text);
+				//					var webSocketMessageType = (_connection.ActiveFormat == TransferFormat.Binary
+				//						? WebSocketMessageType.Binary
+				//						: WebSocketMessageType.Text);
 
-									if (WebSocketCanSend(socket))
-									{
-										consumed = await socket.SendAsync(buffer, buffer.Start, webSocketMessageType);      //RSOCKET Framing
-									}
-									else
-									{
-										break;
-									}
-								}
-								catch (Exception ex)
-								{
-									if (!_aborted)
-									{
-										Log.ErrorWritingFrame(_logger, ex);
-									}
-									break;
-								}
-							}
-							else if (result.IsCompleted)
-							{
-								break;
-							}
-						}
-						finally
-						{
-							_application.Input.AdvanceTo(consumed, buffer.End);     //RSOCKET Framing
-						}
-					}
-				}
-				catch (Exception ex)
-				{
-					error = ex;
-				}
-				finally
-				{
-					// Send the close frame before calling into user code
-					if (WebSocketCanSend(socket))
-					{
-						// We're done sending, send the close frame to the client if the websocket is still open
-						await socket.CloseOutputAsync(error != null ? WebSocketCloseStatus.InternalServerError : WebSocketCloseStatus.NormalClosure, "", CancellationToken.None);
-					}
+				//					if (WebSocketCanSend(socket))
+				//					{
+				//						consumed = await socket.SendAsync(buffer, buffer.Start, webSocketMessageType);      //RSOCKET Framing
+				//					}
+				//					else
+				//					{
+				//						break;
+				//					}
+				//				}
+				//				catch (Exception ex)
+				//				{
+				//					if (!_aborted)
+				//					{
+				//						Log.ErrorWritingFrame(_logger, ex);
+				//					}
+				//					break;
+				//				}
+				//			}
+				//			else if (result.IsCompleted)
+				//			{
+				//				break;
+				//			}
+				//		}
+				//		finally
+				//		{
+				//			_application.Input.AdvanceTo(consumed, buffer.End);     //RSOCKET Framing
+				//		}
+				//	}
+				//}
+				//catch (Exception ex)
+				//{
+				//	error = ex;
+				//}
+				//finally
+				//{
+				//	// Send the close frame before calling into user code
+				//	if (WebSocketCanSend(socket))
+				//	{
+				//		// We're done sending, send the close frame to the client if the websocket is still open
+				//		await socket.CloseOutputAsync(error != null ? WebSocketCloseStatus.InternalServerError : WebSocketCloseStatus.NormalClosure, "", CancellationToken.None);
+				//	}
 
-					_application.Input.Complete();
-				}
+				//	_application.Input.Complete();
+				//}
 
 			}
 

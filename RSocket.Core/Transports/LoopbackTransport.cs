@@ -19,7 +19,11 @@ public class LoopbackTransport : IRSocketTransport
 	public ValueTask StartAsync(CancellationToken cancel = default) => ValueTask.CompletedTask;   //This is a noop because they are already connected.
 	public ValueTask StopAsync() => ValueTask.CompletedTask;
 
-	public IRSocketTransport Beyond => new ServerTransport(this);		//TODO Maybe not Server? Backside? Otherside?
+	public void SendAsync(Payloads.FrameBuffer frame)
+	{
+	}
+
+	public IRSocketTransport Beyond => new ServerTransport(this);       //TODO Maybe not Server? Backside? Otherside?
 
 	struct ServerTransport : IRSocketTransport
 	{
@@ -27,6 +31,10 @@ public class LoopbackTransport : IRSocketTransport
 		public ServerTransport(IRSocketTransport transport) { Transport = transport; }
 		public PipeReader Input => Transport.Input;
 		public PipeWriter Output => Transport.Output;
+
+		public void SendAsync(Payloads.FrameBuffer frame)
+		{
+		}
 		public ValueTask StartAsync(CancellationToken cancel = default) => Transport.StartAsync(cancel);
 		public ValueTask StopAsync() => Transport.StopAsync();
 	}

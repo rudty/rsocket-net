@@ -8,6 +8,7 @@ using System.Buffers.Binary;
 
 namespace RSocket
 {
+	using global::RSocket.Payloads;
 	using System.Buffers;
 	using System.Threading;
 
@@ -66,7 +67,7 @@ namespace RSocket
 			public bool IsNext { get => (Header.Flags & FLAG_NEXT) != 0; set => Header.Flags = value ? (ushort)(Header.Flags | FLAG_NEXT) : (ushort)(Header.Flags & ~FLAG_NEXT); }
 
 			private Header Header;
-			public Int32 Stream => Header.Stream;
+			public Int32 Stream => Header.StreamId;
 			public int MetadataLength;
 			public int DataLength;
 			private const int InnerLength = 0;
@@ -134,7 +135,7 @@ namespace RSocket
 			public bool IsComplete { get => (Header.Flags & FLAG_COMPLETE) != 0; set => Header.Flags = value ? (ushort)(Header.Flags | FLAG_COMPLETE) : (ushort)(Header.Flags & ~FLAG_COMPLETE); }
 
 			private Header Header;
-			public Int32 Stream => Header.Stream;
+			public Int32 Stream => Header.StreamId;
 			public Int32 InitialRequest;
 			public int MetadataLength;
 			public int DataLength;
@@ -160,7 +161,7 @@ namespace RSocket
 
 			public bool Validate(bool canContinue = false)
 			{
-				if (Header.Stream == 0) { return canContinue ? false : throw new ArgumentOutOfRangeException(nameof(Header.Stream), Header.Stream, $"Invalid {nameof(RequestChannel)} Message."); }
+				if (Header.StreamId == 0) { return canContinue ? false : throw new ArgumentOutOfRangeException(nameof(Header.StreamId), Header.StreamId, $"Invalid {nameof(RequestChannel)} Message."); }
 				if (MetadataLength > MaxMetadataLength) { return canContinue ? false : throw new ArgumentOutOfRangeException(nameof(MetadataLength), MetadataLength, $"Invalid {nameof(RequestChannel)} Message."); }
 				if (InitialRequest <= 0) { return canContinue ? false : throw new ArgumentOutOfRangeException(nameof(InitialRequest), InitialRequest, $"Invalid {nameof(RequestChannel)} Message."); }   //SPEC: Value MUST be > 0.
 				else return true;
@@ -190,7 +191,7 @@ namespace RSocket
 			public bool HasFollows { get => (Header.Flags & FLAG_FOLLOWS) != 0; set => Header.Flags = value ? (ushort)(Header.Flags | FLAG_FOLLOWS) : (ushort)(Header.Flags & ~FLAG_FOLLOWS); }
 
 			private Header Header;
-			public Int32 Stream => Header.Stream;
+			public Int32 Stream => Header.StreamId;
 			public Int32 InitialRequest;
 			public int MetadataLength;
 			public int DataLength;
@@ -216,7 +217,7 @@ namespace RSocket
 
 			public bool Validate(bool canContinue = false)
 			{
-				if (Header.Stream == 0) { return canContinue ? false : throw new ArgumentOutOfRangeException(nameof(Header.Stream), Header.Stream, $"Invalid {nameof(RequestStream)} Message."); }
+				if (Header.StreamId == 0) { return canContinue ? false : throw new ArgumentOutOfRangeException(nameof(Header.StreamId), Header.StreamId, $"Invalid {nameof(RequestStream)} Message."); }
 				if (MetadataLength > MaxMetadataLength) { return canContinue ? false : throw new ArgumentOutOfRangeException(nameof(MetadataLength), MetadataLength, $"Invalid {nameof(RequestStream)} Message."); }
 				if (InitialRequest <= 0) { return canContinue ? false : throw new ArgumentOutOfRangeException(nameof(InitialRequest), InitialRequest, $"Invalid {nameof(RequestStream)} Message."); }   //SPEC: Value MUST be > 0.
 				else return true;
@@ -246,7 +247,7 @@ namespace RSocket
 			public bool HasFollows { get => (Header.Flags & FLAG_FOLLOWS) != 0; set => Header.Flags = value ? (ushort)(Header.Flags | FLAG_FOLLOWS) : (ushort)(Header.Flags & ~FLAG_FOLLOWS); }
 
 			private Header Header;
-			public Int32 Stream => Header.Stream;
+			public Int32 Stream => Header.StreamId;
 			public int MetadataLength;
 			public int DataLength;
 			private const int InnerLength = 0;
@@ -268,7 +269,7 @@ namespace RSocket
 
 			public bool Validate(bool canContinue = false)
 			{
-				if (Header.Stream == 0) { return canContinue ? false : throw new ArgumentOutOfRangeException(nameof(Header.Stream), Header.Stream, $"Invalid {nameof(RequestResponse)} Message."); }
+				if (Header.StreamId == 0) { return canContinue ? false : throw new ArgumentOutOfRangeException(nameof(Header.StreamId), Header.StreamId, $"Invalid {nameof(RequestResponse)} Message."); }
 				if (MetadataLength > MaxMetadataLength) { return canContinue ? false : throw new ArgumentOutOfRangeException(nameof(MetadataLength), MetadataLength, $"Invalid {nameof(RequestResponse)} Message."); }
 				else return true;
 			}
@@ -296,7 +297,7 @@ namespace RSocket
 			public bool HasFollows { get => (Header.Flags & FLAG_FOLLOWS) != 0; set => Header.Flags = value ? (ushort)(Header.Flags | FLAG_FOLLOWS) : (ushort)(Header.Flags & ~FLAG_FOLLOWS); }
 
 			private Header Header;
-			public Int32 Stream => Header.Stream;
+			public Int32 Stream => Header.StreamId;
 			public int MetadataLength;
 			public int DataLength;
 			private const int InnerLength = 0;
@@ -318,7 +319,7 @@ namespace RSocket
 
 			public bool Validate(bool canContinue = false)
 			{
-				if (Header.Stream == 0) { return canContinue ? false : throw new ArgumentOutOfRangeException(nameof(Header.Stream), Header.Stream, $"Invalid {nameof(RequestFireAndForget)} Message."); }
+				if (Header.StreamId == 0) { return canContinue ? false : throw new ArgumentOutOfRangeException(nameof(Header.StreamId), Header.StreamId, $"Invalid {nameof(RequestFireAndForget)} Message."); }
 				if (MetadataLength > MaxMetadataLength) { return canContinue ? false : throw new ArgumentOutOfRangeException(nameof(MetadataLength), MetadataLength, $"Invalid {nameof(RequestFireAndForget)} Message."); }
 				else return true;
 			}
@@ -344,7 +345,7 @@ namespace RSocket
 			public bool HasMetadata { get => Header.HasMetadata; set => Header.HasMetadata = value; }
 
 			private Header Header;
-			public Int32 Stream => Header.Stream;
+			public Int32 Stream => Header.StreamId;
 			public Int32 RequestNumber;
 			private const int InnerLength = sizeof(Int32);
 			public int Length => Header.Length + InnerLength;
@@ -363,7 +364,7 @@ namespace RSocket
 
 			public bool Validate(bool canContinue = false)
 			{
-				if (Header.Stream == 0) { return canContinue ? false : throw new ArgumentOutOfRangeException(nameof(Header.Stream), Header.Stream, $"Invalid {nameof(RequestN)} Message."); }
+				if (Header.StreamId == 0) { return canContinue ? false : throw new ArgumentOutOfRangeException(nameof(Header.StreamId), Header.StreamId, $"Invalid {nameof(RequestN)} Message."); }
 				if (HasMetadata) { return canContinue ? false : throw new ArgumentOutOfRangeException(nameof(HasMetadata), HasMetadata, $"Invalid {nameof(RequestN)} Message."); }
 				if (RequestNumber <= 0) { return canContinue ? false : throw new ArgumentOutOfRangeException(nameof(RequestNumber), RequestNumber, $"Invalid {nameof(RequestN)} Message."); }   //SPEC: Value MUST be > 0.
 				else return true;
@@ -441,7 +442,7 @@ namespace RSocket
 
 			public bool Validate(bool canContinue = false)
 			{
-				if (Header.Stream == 0) { return canContinue ? false : throw new ArgumentOutOfRangeException(nameof(Header.Stream), $"Invalid {nameof(KeepAlive)} Message."); }		//SPEC: KEEPALIVE frames MUST always use Stream ID 0 as they pertain to the Connection.
+				if (Header.StreamId == 0) { return canContinue ? false : throw new ArgumentOutOfRangeException(nameof(Header.StreamId), $"Invalid {nameof(KeepAlive)} Message."); }		//SPEC: KEEPALIVE frames MUST always use Stream ID 0 as they pertain to the Connection.
 				if (LastReceivedPosition < 0) { return canContinue ? false : throw new ArgumentOutOfRangeException(nameof(LastReceivedPosition), LastReceivedPosition, $"Invalid {nameof(KeepAlive)} Message."); }	//SPEC: Value MUST be > 0. (optional. Set to all 0s when not supported.)
 				else return true;
 			}
@@ -489,7 +490,7 @@ namespace RSocket
 
 			public bool Validate(bool canContinue = false)
 			{
-				if (Header.Stream == 0) { return canContinue ? false : throw new ArgumentOutOfRangeException(nameof(Header.Stream), $"Invalid {nameof(Lease)} Message."); }
+				if (Header.StreamId == 0) { return canContinue ? false : throw new ArgumentOutOfRangeException(nameof(Header.StreamId), $"Invalid {nameof(Lease)} Message."); }
 				if (MetadataLength > MaxMetadataLength) { return canContinue ? false : throw new ArgumentOutOfRangeException(nameof(MetadataLength), MetadataLength, $"Invalid {nameof(Lease)} Message."); }
 				else return true;
 			}
@@ -575,7 +576,7 @@ namespace RSocket
 
 			public bool Validate(bool canContinue = false)
 			{
-				if (Header.Stream == 0) { return canContinue ? false : throw new ArgumentOutOfRangeException(nameof(Header.Stream), Header.Stream, $"Invalid {nameof(MetadataPush)} Message."); }
+				if (Header.StreamId == 0) { return canContinue ? false : throw new ArgumentOutOfRangeException(nameof(Header.StreamId), Header.StreamId, $"Invalid {nameof(MetadataPush)} Message."); }
 				if (MetadataLength > MaxMetadataLength) { return canContinue ? false : throw new ArgumentOutOfRangeException(nameof(MetadataLength), MetadataLength, $"Invalid {nameof(MetadataPush)} Message."); }
 				else return true;
 			}
@@ -602,7 +603,7 @@ namespace RSocket
 			private const int InnerLength = sizeof(int);
 			public int Length => header.Length + InnerLength + dataLength;
 
-			public int Stream => header.Stream;
+			public int Stream => header.StreamId;
 
 			public Error(ErrorCodes code, int stream = Header.DEFAULT_STREAM, ReadOnlySequence<byte> data = default)
 			{
@@ -660,7 +661,7 @@ namespace RSocket
 			public bool CanLease { get => (Header.Flags & FLAG_LEASE) != 0; set => Header.Flags = value ? (ushort)(Header.Flags | FLAG_LEASE) : (ushort)(Header.Flags & ~FLAG_LEASE); }
 
 			private Header Header;
-			public Int32 Stream => Header.Stream;
+			public Int32 Stream => Header.StreamId;
 			public UInt16 MajorVersion;
 			public UInt16 MinorVersion;
 			public Int32 KeepAlive;
@@ -759,7 +760,7 @@ namespace RSocket
 			public bool HasMetadata { get => (Flags & FLAG_METADATA) != 0; set => Flags = value ? (ushort)(Flags | FLAG_METADATA) : (ushort)(Flags & ~FLAG_METADATA); }
 			public int MetadataHeaderLength => HasMetadata ? METADATALENGTHSIZE : 0;		//TODO Only here?
 
-			public Int32 Stream;
+			public Int32 StreamId;
 			public Types Type;
 			public UInt16 Flags;
 			static public Types MakeType(ushort flags) => (Types)((flags & FRAMETYPE_TYPE) >> FRAMETYPE_OFFSET);
@@ -769,11 +770,20 @@ namespace RSocket
 			private int FrameLength;
 			public int Remaining => FrameLength - Length;       //TODO Temporary refactoring
 
+			public Header(Types type, Int32 streamId, int metaDataLength)
+			{
+				FrameLength = 0;
+				Type = type;
+				StreamId = streamId;
+				Flags = 0;
+				HasMetadata = metaDataLength > 0;
+			}
+
 			public Header(Types type, Int32 stream = 0, scoped in ReadOnlySequence<byte> metadata = default)
 			{
 				FrameLength = 0;
 				Type = type;
-				Stream = stream;
+				StreamId = stream;
 				Flags = 0;
 				HasMetadata = metadata.Length > 0;
 			}
@@ -781,7 +791,7 @@ namespace RSocket
 			public Header(ref SequenceReader<byte> reader, int framelength = 0)
 			{
 				FrameLength = framelength;
-				reader.TryReadBigEndian(out Stream);
+				reader.TryReadBigEndian(out StreamId);
 				reader.TryReadBigEndian(out UInt16 flags);
 				Type = MakeType(flags);
 				Flags = MakeFlags(flags);
@@ -790,12 +800,20 @@ namespace RSocket
 			public int Write(BufferWriter writer, int length)
 			{
 				writer.WriteInt24BigEndian(length);		//Not included in total length.
-				writer.WriteInt32BigEndian(Stream);
+				writer.WriteInt32BigEndian(StreamId);
 				writer.WriteUInt16BigEndian((((int)Type << FRAMETYPE_OFFSET) & FRAMETYPE_TYPE) | (Flags & FLAGS));//  (Ignore ? FLAG_IGNORE : 0) | (Metadata ? FLAG_METADATA : 0));
 				return Length;
 			}
 
-			public override string ToString() => $"{Stream:0000} {Type}";
+			public int Write(FrameBuffer writer, int length)
+			{
+				writer.WriteInt24BigEndian(length);     //Not included in total length.
+				writer.WriteInt32BigEndian(StreamId);
+				writer.WriteUInt16BigEndian((((int)Type << FRAMETYPE_OFFSET) & FRAMETYPE_TYPE) | (Flags & FLAGS));//  (Ignore ? FLAG_IGNORE : 0) | (Metadata ? FLAG_METADATA : 0));
+				return Length;
+			}
+
+			public override string ToString() => $"{StreamId:0000} {Type}";
 			public string ToStringFlags(IEnumerable<(bool, string, string)>? flags = default) => new[] { (CanIgnore, nameof(CanIgnore), string.Empty), (HasMetadata, nameof(HasMetadata), string.Empty) }.Concat<(bool Condition, string True, string False)>(flags ?? Enumerable.Empty<(bool, string, string)>()).Aggregate(new StringBuilder($"{{{Flags:X3}"), (s, i) => s.Append(i.Condition ? "|" + i.True : i.False)).ToString().TrimEnd(',') + "}";
 		}
 	}

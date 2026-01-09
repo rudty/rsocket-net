@@ -1,5 +1,6 @@
 namespace RSocket;
 
+using global::RSocket.Payloads;
 using System.IO.Pipelines;
 
 /// <summary>
@@ -12,6 +13,7 @@ public interface IRSocketTransport
 
 	ValueTask StartAsync(CancellationToken cancel = default);
 	ValueTask StopAsync();
+	void SendAsync(FrameBuffer frame);
 }
 
 /// <summary>

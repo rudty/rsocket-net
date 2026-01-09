@@ -91,11 +91,30 @@ public partial class RSocket : IRSocketProtocol
 		}
 	}
 
-	public async ValueTask<IAsyncEnumerable<DataAndMetadata>> RequestStream(ReadOnlySequence<byte> data, ReadOnlySequence<byte> metadata = default, int initial = RSocketOptions.INITIALDEFAULT)
+	public async ValueTask<IAsyncEnumerable<DataAndMetadata>> RequestStream(Memory<byte> data, Memory<byte> metadata = default, int initial = RSocketOptions.INITIALDEFAULT)
 	{
+		var initialRequest = Options.GetInitialRequestSize(initial);
 		var enumerable = new StreamAsyncEnumerator<DataAndMetadata>();
 		var id = RegisterDispatcher(enumerable);
-		await new RSocketProtocol.RequestStream(id, data, metadata, initialRequest: Options.GetInitialRequestSize(initial)).WriteFlush(Transport.Output, data, metadata);
+		var header = new RSocketProtocol.Header(
+			type: RSocketProtocol.Types.Request_Stream,
+			streamId: id,
+			metaDataLength: metadata.Length);
+
+		var bufferLength = header.Length + header.MetadataHeaderLength + sizeof(Int32) + metadata.Length + data.Length;
+		var writer = FrameBuffer.Create(bufferLength);
+		var written = header.Write(writer, bufferLength);
+
+		written += writer.WriteInt32BigEndian(initialRequest);
+		if (metadata.Length > 0)
+		{
+			written += writer.WriteInt24BigEndian(metadata.Length);
+			written += writer.Write(metadata.Span);
+		} //TODO Should this be UInt24? Probably, but not sure if it can actually overflow...
+
+		written += writer.Write(data.Span);
+
+		Transport.SendAsync(writer);
 		return enumerable;
 	}
 
