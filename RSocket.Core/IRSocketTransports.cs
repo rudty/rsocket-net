@@ -10,8 +10,8 @@ public interface IRSocketTransport
 	PipeReader Input { get; }
 	PipeWriter Output { get; }
 
-	Task StartAsync(CancellationToken cancel = default);
-	Task StopAsync();
+	ValueTask StartAsync(CancellationToken cancel = default);
+	ValueTask StopAsync();
 }
 
 /// <summary>
