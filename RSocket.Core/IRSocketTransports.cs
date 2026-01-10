@@ -1,6 +1,6 @@
 namespace RSocket;
 
-using global::RSocket.Payloads;
+using global::RSocket.Frame;
 using System.IO.Pipelines;
 
 /// <summary>

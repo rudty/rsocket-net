@@ -4,6 +4,7 @@
 
 using System.Buffers.Binary;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -33,7 +34,7 @@ namespace System.Buffers
         /// <param name="value">The resulting value.</param>
         /// <param name="encoding">The Encoding of the string bytes. Defaults to ASCII.</param>
         /// <returns>True if the sequence had enough to fill the string.</returns>
-        public static bool TryReadPrefix(ref this SequenceReader<byte> reader, out string? value, Encoding? encoding = null)
+        public static bool TryReadPrefix(ref this SequenceReader<byte> reader, [NotNullWhen(true)] out string? value, Encoding? encoding = null)
         {
             // 1. 최소 길이(1바이트) 체크 및 길이 접두사 엿보기
             var remaining = reader.Remaining;

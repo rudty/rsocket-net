@@ -1,6 +1,6 @@
 namespace RSocket.Transports;
 
-using global::RSocket.Payloads;
+using global::RSocket.Frame;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Buffers;
@@ -62,6 +62,7 @@ public class SocketTransport : MpscMessageLooper<FrameBuffer>, IRSocketTransport
 		await Socket.ConnectAsync(dns.AddressList, Url.Port, cancellationToken);
 
 		Running = ProcessSocketAsync(Socket, cancellationToken);
+		_ = Start(cancellationToken);
 	}
 
 	public ValueTask StopAsync() => ValueTask.CompletedTask;		//TODO More graceful shutdown
@@ -137,14 +138,15 @@ public class SocketTransport : MpscMessageLooper<FrameBuffer>, IRSocketTransport
 
 	private async Task StartReceiving(Socket socket, CancellationToken cancellationToken)
 	{ 
+		var output = Back.Output;
 		try
 		{
 			while (!cancellationToken.IsCancellationRequested)
 			{
-				var memory = Back.Output.GetMemory();
+				var memory = output.GetMemory();
 				var received = await socket.ReceiveAsync(memory, SocketFlags.None, cancellationToken);
-				Back.Output.Advance(received);
-				var flushResult = await Back.Output.FlushAsync(cancellationToken);
+				output.Advance(received);
+				var flushResult = await output.FlushAsync(cancellationToken);
 				if (flushResult.IsCanceled || flushResult.IsCompleted)
 				{
 					break;
@@ -163,7 +165,6 @@ public class SocketTransport : MpscMessageLooper<FrameBuffer>, IRSocketTransport
 		{
 			if (!Aborted && !cancellationToken.IsCancellationRequested)
 			{
-				Back.Output.Complete(e);
 				throw;
 			}
 		}
@@ -171,7 +172,7 @@ public class SocketTransport : MpscMessageLooper<FrameBuffer>, IRSocketTransport
 		{
 			try
 			{
-				Back.Output.Complete();
+				output.Complete();
 			} catch { }
 		}
 	}
@@ -266,12 +267,7 @@ public class SocketTransport : MpscMessageLooper<FrameBuffer>, IRSocketTransport
 		return sent;
 	}
 
-	public override void OnItemReceived(FrameBuffer item)
-	{
-		throw new NotImplementedException();
-	}
-
-	public async void SendAsync(FrameBuffer frame)
+	public override async ValueTask OnItemReceived(FrameBuffer frame)
 	{
 		try
 		{
@@ -281,5 +277,10 @@ public class SocketTransport : MpscMessageLooper<FrameBuffer>, IRSocketTransport
 		{
 			frame.Release();
 		}
+	}
+
+	public async void SendAsync(FrameBuffer frame)
+	{
+		Add(frame);
 	}
 }

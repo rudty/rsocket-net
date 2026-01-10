@@ -11,6 +11,7 @@ using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 using System.Buffers;
 using RSocket.Payloads;
+using RSocket.Frame;
 
 namespace RSocket.Transports
 {

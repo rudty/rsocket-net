@@ -1,4 +1,4 @@
-namespace RSocket.Payloads;
+namespace RSocket.Frame;
 
 using System.Buffers;
 using System.Buffers.Binary;
@@ -33,6 +33,7 @@ public sealed class FrameBuffer
 		return outputBuffer;
 	}
 
+	public bool IsInitialized => buffer is not null;
 	public int ReferenceCount => referenceCount;
 
 	public void Retain()

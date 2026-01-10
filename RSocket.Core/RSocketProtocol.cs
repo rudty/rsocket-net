@@ -6,9 +6,11 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Buffers.Binary;
 
+
 namespace RSocket
 {
 	using global::RSocket.Payloads;
+	using global::RSocket.Frame;
 	using System.Buffers;
 	using System.Threading;
 
@@ -678,11 +680,15 @@ namespace RSocket
 			public int Length => Header.Length + InnerLength + Header.MetadataHeaderLength + MetadataLength + DataLength;
 			
 
-			public Setup(TimeSpan keepalive, TimeSpan lifetime, string? metadataMimeType = null, string? dataMimeType = null, ReadOnlySequence<byte> data = default, ReadOnlySequence<byte> metadata = default) : this((int)keepalive.TotalMilliseconds, (int)lifetime.TotalMilliseconds, string.IsNullOrEmpty(metadataMimeType) ? string.Empty : metadataMimeType, string.IsNullOrEmpty(dataMimeType) ? string.Empty : dataMimeType, data: data, metadata: metadata) { }
+			//public Setup(TimeSpan keepalive, TimeSpan lifetime, string? metadataMimeType = null, string? dataMimeType = null, ReadOnlySequence<byte> data = default, ReadOnlySequence<byte> metadata = default) : this((int)keepalive.TotalMilliseconds, (int)lifetime.TotalMilliseconds, string.IsNullOrEmpty(metadataMimeType) ? string.Empty : metadataMimeType, string.IsNullOrEmpty(dataMimeType) ? string.Empty : dataMimeType, data: data, metadata: metadata) { }
 
-			public Setup(Int32 keepalive, Int32 lifetime, string? metadataMimeType, string? dataMimeType, byte[]? resumeToken = null, ReadOnlySequence<byte> data = default, ReadOnlySequence<byte> metadata = default)
+			public Setup(Int32 keepalive, Int32 lifetime, string? metadataMimeType, string? dataMimeType, byte[]? resumeToken, int dataLength, int metadataLength)
 			{
-				Header = new Header(Types.Setup, metadata: metadata);
+				Header = new Header(
+					type: Types.Setup,
+					streamId: 0,
+					metadataLength: metadataLength);
+
 				MajorVersion = MAJOR_VERSION;
 				MinorVersion = MINOR_VERSION;
 				KeepAlive = keepalive;
@@ -690,8 +696,8 @@ namespace RSocket
 				ResumeToken = resumeToken ?? Array.Empty<byte>();
 				MetadataMimeType = metadataMimeType ?? RSocketOptions.Default.MetadataMimeType;
 				DataMimeType = dataMimeType ?? RSocketOptions.Default.DataMimeType;
-				MetadataLength = (int)metadata.Length;
-				DataLength = (int)data.Length;
+				MetadataLength = metadataLength;
+				DataLength = dataLength;
 				HasResume = resumeToken != default && resumeToken.Length > 0;
 			}
 
@@ -727,6 +733,32 @@ namespace RSocket
 			//TODO So common, should be library..?
 			public void Write(PipeWriter pipe, ReadOnlySequence<byte> data = default, ReadOnlySequence<byte> metadata = default) { var writer = BufferWriter.Get(pipe); Write(writer, data: data, metadata: metadata); writer.Flush(); BufferWriter.Return(writer); }
 			public Task WriteFlush(PipeWriter pipe, ReadOnlySequence<byte> data = default, ReadOnlySequence<byte> metadata = default, CancellationToken cancel = default) { Write(pipe, data: data, metadata:metadata); return Flush(pipe, cancel); }
+
+			public void Serialize(FrameBuffer frameBuffer, Memory<byte> data, Memory<byte> metadata)
+			{
+				var written = Header.Write(frameBuffer, Length);
+				written += frameBuffer.WriteUInt16BigEndian(MajorVersion);
+				written += frameBuffer.WriteUInt16BigEndian(MinorVersion);
+				written += frameBuffer.WriteInt32BigEndian(KeepAlive);
+				written += frameBuffer.WriteInt32BigEndian(Lifetime);
+
+				if (HasResume)
+				{
+					written += frameBuffer.WriteUInt16BigEndian(ResumeToken.Length);
+					written += frameBuffer.Write(ResumeToken);
+				}
+
+				written += frameBuffer.WritePrefixByte(MetadataMimeType);
+				written += frameBuffer.WritePrefixByte(DataMimeType);
+
+				if (HasMetadata)
+				{
+					written += frameBuffer.WriteInt24BigEndian(MetadataLength);
+					written += frameBuffer.Write(metadata.Span);
+				}      //TODO Should this be UInt24? Probably, but not sure if it can actually overflow...
+
+				frameBuffer.Write(data.Span);
+			}
 
 			void Write(BufferWriter writer, ReadOnlySequence<byte> data = default, ReadOnlySequence<byte> metadata = default)
 			{
@@ -770,13 +802,13 @@ namespace RSocket
 			private int FrameLength;
 			public int Remaining => FrameLength - Length;       //TODO Temporary refactoring
 
-			public Header(Types type, Int32 streamId, int metaDataLength)
+			public Header(Types type, Int32 streamId, int metadataLength)
 			{
 				FrameLength = 0;
 				Type = type;
 				StreamId = streamId;
 				Flags = 0;
-				HasMetadata = metaDataLength > 0;
+				HasMetadata = metadataLength > 0;
 			}
 
 			public Header(Types type, Int32 stream = 0, scoped in ReadOnlySequence<byte> metadata = default)

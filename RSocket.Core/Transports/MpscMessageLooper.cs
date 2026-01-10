@@ -40,20 +40,21 @@ public abstract class MpscMessageLooper<T>
 	/// <summary>
 	/// 큐에서 꺼낸 항목을 처리하는 로직을 구현합니다. (필수 구현)
 	/// </summary>
-	public abstract void OnItemReceived(T item);
+	public abstract ValueTask OnItemReceived(T item);
 
 	/// <summary>
 	/// OnItemReceived에서 예외가 발생했을 때 호출됩니다. (선택적 오버라이드)
 	/// </summary>
-	public virtual void OnException(T item, Exception exception)
+	public virtual ValueTask OnException(T item, Exception exception)
 	{
 		Debug.WriteLine($"MpscMessageLooper OnException Item:{item} Exception:{exception}");
+		return ValueTask.CompletedTask;
 	}
 
 	/// <summary>
 	/// Consumer 루프를 시작하고 큐 항목이 도착할 때까지 효율적으로 대기합니다.
 	/// </summary>
-	public virtual async ValueTask Start(
+	public virtual async Task Start(
 		CancellationToken cancellation,
 		bool schedulingContext = true,
 		bool captureExecutionContext = true)
@@ -67,7 +68,7 @@ public abstract class MpscMessageLooper<T>
 			while (taskQueue.TryDequeue(out var v1))
 			{
 				// 항목 처리 로직 실행
-				ExecuteItemHandler(v1);
+				await ExecuteItemHandler(v1);
 			}
 
 			// 2. 대기 상태로 전환 준비 (RecycleTask.signaled = 0)
@@ -76,7 +77,7 @@ public abstract class MpscMessageLooper<T>
 			// 3. 방어적인 재확인 (Lost Wakeup 방어): Reset()과 await task 사이에 도착한 항목이 있는지 확인
 			if (taskQueue.TryDequeue(out var v2))
 			{
-				ExecuteItemHandler(v2);
+				await ExecuteItemHandler(v2);
 
 				// 항목이 있다면 잠들지 않고 다시 1단계로 돌아가 처리
 				continue;
@@ -88,18 +89,18 @@ public abstract class MpscMessageLooper<T>
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	private void ExecuteItemHandler(T item)
+	private async ValueTask ExecuteItemHandler(T item)
 	{
 		try
 		{
-			OnItemReceived(item);
+			await OnItemReceived(item);
 		}
 		catch (Exception e)
 		{
 			try
 			{
 				// 사용자 정의 예외 처리 메서드 호출
-				OnException(item, e);
+				await OnException(item, e);
 			}
 			catch
 			{
@@ -128,7 +129,7 @@ internal abstract class MessageExecutorBase
 
 	protected abstract void RunInternal(Action<object?> action, object state);
 
-	private void ExecuteContinuationWithContext(object c)
+	private void ExecuteContinuationWithContext(object? c)
 	{
 		if (!(executionContext is null))
 		{
@@ -142,7 +143,7 @@ internal abstract class MessageExecutorBase
 		}
 	}
 
-	private static void RunState(object state)
+	private static void RunState(object? state)
 	{
 		var action = state as Action;
 		action!.Invoke();

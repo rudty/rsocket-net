@@ -1,6 +1,6 @@
 namespace RSocket;
 
-public class RSocketServer : RSocket
+public class RSocketServer : RSocket1
 {
 	public RSocketServer(IRSocketTransport transport, PrefetchOptions? options = null) : base(transport, options) { }
 

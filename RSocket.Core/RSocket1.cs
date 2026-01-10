@@ -1,6 +1,7 @@
 namespace RSocket;
 
 using global::RSocket.Payloads;
+using RSocket.Frame;
 using System;
 using System.Buffers;
 using System.Collections.Concurrent;
@@ -35,7 +36,7 @@ public interface IRSocketChannel
 	Task Send(RefDataAndMetadata value);
 }
 
-public partial class RSocket : IRSocketProtocol
+public partial class RSocket1 : IRSocketProtocol
 {
 	PrefetchOptions Options { get; set; }
 	private CancellationToken cancellationToken;
@@ -56,7 +57,7 @@ public partial class RSocket : IRSocketProtocol
 	}
 	//TODO Stream Destruction - i.e. removal from the dispatcher.
 
-	public RSocket(IRSocketTransport transport, PrefetchOptions? options = default)
+	public RSocket1(IRSocketTransport transport, PrefetchOptions? options = default)
 	{
 		Transport = transport;
 		Options = options ?? PrefetchOptions.Default;
@@ -66,9 +67,20 @@ public partial class RSocket : IRSocketProtocol
 	/// <param name="cancel">Cancellation for the handler. Requesting cancellation will stop message handling.</param>
 	/// <returns>The handler task.</returns>
 	public Task Connect(CancellationToken cancel = default) => RSocketProtocol.Handler(this, Transport.Input, cancel);
-	public Task Setup(TimeSpan keepalive, TimeSpan lifetime, string? metadataMimeType = null, string? dataMimeType = null, ReadOnlySequence<byte> data = default, ReadOnlySequence<byte> metadata = default)
+	public void Setup(TimeSpan keepalive, TimeSpan lifetime, string? metadataMimeType = null, string? dataMimeType = null, Memory<byte> data = default, Memory<byte> metadata = default)
 	{
-		return new RSocketProtocol.Setup(keepalive, lifetime, metadataMimeType: metadataMimeType, dataMimeType: dataMimeType, data: data, metadata: metadata).WriteFlush(Transport.Output, data: data, metadata: metadata);
+		var setup = new RSocketProtocol.Setup(
+			keepalive: (int)keepalive.TotalMilliseconds,
+			lifetime: (int)lifetime.TotalMilliseconds,
+			metadataMimeType: metadataMimeType ?? string.Empty,
+			dataMimeType: dataMimeType ?? string.Empty,
+			resumeToken: null,
+			dataLength: data.Length,
+			metadataLength: metadata.Length);
+
+		var frameBuffer = FrameBuffer.Create(setup.Length);
+		setup.Serialize(frameBuffer, data: data, metadata: metadata);
+		Transport.SendAsync(frameBuffer);
 	}
 
 	//TODO SPEC: A requester MUST not send PAYLOAD frames after the REQUEST_CHANNEL frame until the responder sends a REQUEST_N frame granting credits for number of PAYLOADs able to be sent.
@@ -99,7 +111,7 @@ public partial class RSocket : IRSocketProtocol
 		var header = new RSocketProtocol.Header(
 			type: RSocketProtocol.Types.Request_Stream,
 			streamId: id,
-			metaDataLength: metadata.Length);
+			metadataLength: metadata.Length);
 
 		var bufferLength = header.Length + header.MetadataHeaderLength + sizeof(Int32) + metadata.Length + data.Length;
 		var writer = FrameBuffer.Create(bufferLength);

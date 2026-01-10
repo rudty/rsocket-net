@@ -17,14 +17,14 @@ class Program
 
 	static async Task Main(string[] args)
 	{
-		//var loopback = new LoopbackTransport();
+		//var loopback = new LoopbackTransport();		
 		//var server = new EchoServer(loopback.Beyond);
 		//await server.ConnectAsync();
 
 		var client = new RSocketClient(new SocketTransport("tcp://127.0.0.1:7000/"), new RSocketOptions() { InitialRequestSize = 3 });
 		//var client = new RSocketClient(new WebSocketTransport("ws://localhost:9092/"), new RSocketOptions() { InitialRequestSize = 3 });
 		//var client = new RSocketClient(loopback);
-		await client.ConnectAsync();
+		await client.ConnectAsync(RSocketOptions.Default, Memory<byte>.Empty, Memory<byte>.Empty);
 
 		//Console.WriteLine("Requesting Raw Protobuf Stream...");
 

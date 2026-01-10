@@ -2,20 +2,19 @@ namespace RSocket;
 
 using System.Buffers;
 
-public class RSocketClient : RSocket
+public class RSocketClient : RSocket1
 {
 	Task Handler;
 	RSocketOptions Options { get; set; }
 
 	public RSocketClient(IRSocketTransport transport, RSocketOptions? options = default) : base(transport, options) { }
 
-	public Task ConnectAsync(RSocketOptions? options = default, byte[]? data = null, byte[]? metadata = null) => ConnectAsync(options ?? RSocketOptions.Default, data: data == default ? default : new ReadOnlySequence<byte>(data), metadata: metadata == default ? default : new ReadOnlySequence<byte>(metadata));
-
-	public async Task ConnectAsync(RSocketOptions options, ReadOnlySequence<byte> metadata, ReadOnlySequence<byte> data)
+	public async Task ConnectAsync(RSocketOptions options, Memory<byte> metadata, Memory<byte> data)
 	{
 		await Transport.StartAsync();
 		Handler = Connect(CancellationToken.None);
-		await Setup(options.KeepAlive, options.Lifetime, options.MetadataMimeType, options.DataMimeType, data: data, metadata: metadata);
+		options ??= RSocketOptions.Default;
+		Setup(options.KeepAlive, options.Lifetime, options.MetadataMimeType, options.DataMimeType, data: data, metadata: metadata);
 	}
 
 	/// <summary>A simplfied RSocket Client that operates only on UTF-8 strings.</summary>

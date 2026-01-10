@@ -1,5 +1,6 @@
 namespace RSocket.Transports;
 
+using global::RSocket.Frame;
 using System.IO.Pipelines;
 
 public class LoopbackTransport : IRSocketTransport
@@ -19,7 +20,7 @@ public class LoopbackTransport : IRSocketTransport
 	public ValueTask StartAsync(CancellationToken cancel = default) => ValueTask.CompletedTask;   //This is a noop because they are already connected.
 	public ValueTask StopAsync() => ValueTask.CompletedTask;
 
-	public void SendAsync(Payloads.FrameBuffer frame)
+	public void SendAsync(FrameBuffer frame)
 	{
 	}
 
@@ -32,7 +33,7 @@ public class LoopbackTransport : IRSocketTransport
 		public PipeReader Input => Transport.Input;
 		public PipeWriter Output => Transport.Output;
 
-		public void SendAsync(Payloads.FrameBuffer frame)
+		public void SendAsync(FrameBuffer frame)
 		{
 		}
 		public ValueTask StartAsync(CancellationToken cancel = default) => Transport.StartAsync(cancel);
