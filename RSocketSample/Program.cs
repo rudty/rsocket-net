@@ -38,9 +38,11 @@ class Program
 		//var serializePersonData = ProtobufNetSerializer.Serialize(persondata);
 		//var serializePersonMetaData = ProtobufNetSerializer.Serialize(personmetadata);
 
-		//var res = await client.RequestResponse(new ReadOnlySequence<byte>(Encoding.UTF8.GetBytes("Hello Client")), new ReadOnlySequence<byte>(Encoding.UTF8.GetBytes("Hello Client")));
-		//var d = Encoding.UTF8.GetString(res.data);
-		//Console.WriteLine(d);
+		{
+			var res = await client.RequestResponse2(Encoding.UTF8.GetBytes("Hello Client"), Encoding.UTF8.GetBytes("Hello Client"));
+			var a = Encoding.UTF8.GetString(res.data);
+			Console.WriteLine(a);
+		}
 
 		var iter = await client.RequestStream(Encoding.UTF8.GetBytes("Hello Client"), Encoding.UTF8.GetBytes("Hello Client"));
 

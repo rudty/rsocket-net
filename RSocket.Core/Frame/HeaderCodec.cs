@@ -1,10 +1,9 @@
 namespace RSocket.Frame;
 
-using global::RSocket.Payloads;
 using System;
 using System.Buffers;
 
-public readonly ref struct HeaderCodec
+public readonly struct HeaderCodec
 {
 	public const int Length = sizeof(Int32) + sizeof(UInt16);
 	private const int FRAMETYPE_OFFSET = 10;
@@ -47,7 +46,7 @@ public readonly ref struct HeaderCodec
 		{
 			if (HasMetadata)
 			{
-				return Length + Consts.SizeOfMetadataLength;
+				return Length + Consts.SizeOfMetadataHeaderLength;
 
 			}
 
@@ -55,7 +54,7 @@ public readonly ref struct HeaderCodec
 		}
 	}
 
-	public readonly int Write(FrameBuffer writer, int length)
+	public readonly int Encode(FrameBuffer writer, int length)
 	{
 		writer.WriteInt24BigEndian(length); // Not included in total length.
 		writer.WriteInt32BigEndian(streamId);
@@ -64,5 +63,5 @@ public readonly ref struct HeaderCodec
 		return Length;
 	}
 	
-	public override readonly string ToString() => $"{streamId:0000} {FrameType}";
+	public override readonly string ToString() => $"{streamId:0000} {FrameType} {(Consts.HeaderFlags)Flags}";
 }

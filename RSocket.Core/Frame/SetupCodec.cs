@@ -22,13 +22,17 @@ public readonly ref struct SetupCodec
 	public readonly int MetadataLength { get; }
 	public readonly int DataLength { get; }
 
-
 	public SetupCodec(Int32 keepalive, Int32 lifetime, string? metadataMimeType, string? dataMimeType, byte[]? resumeToken, int dataLength, int metadataLength)
 	{
 		var headerFlags = Consts.HeaderFlags.None;
 		if (resumeToken is not null && resumeToken.Length > 0)
 		{
 			headerFlags |= Consts.HeaderFlags.SetupResume;
+		}
+
+		if (metadataLength > 0)
+		{
+			headerFlags |= Consts.HeaderFlags.Metadata;
 		}
 
 		Header = new HeaderCodec(
@@ -107,7 +111,7 @@ public readonly ref struct SetupCodec
 
 	public void Encode(FrameBuffer frameBuffer, Memory<byte> data, Memory<byte> metadata)
 	{
-		var written = Header.Write(frameBuffer, Length);
+		var written = Header.Encode(frameBuffer, Length);
 		written += frameBuffer.WriteUInt16BigEndian(MajorVersion);
 		written += frameBuffer.WriteUInt16BigEndian(MinorVersion);
 		written += frameBuffer.WriteInt32BigEndian(KeepAlive);

@@ -1,5 +1,6 @@
 namespace RSocket;
 
+using RSocket.Frame;
 using System.Buffers;
 
 public class RSocketClient : RSocket1
@@ -14,7 +15,23 @@ public class RSocketClient : RSocket1
 		await Transport.StartAsync();
 		Handler = Connect(CancellationToken.None);
 		options ??= RSocketOptions.Default;
-		Setup(options.KeepAlive, options.Lifetime, options.MetadataMimeType, options.DataMimeType, data: data, metadata: metadata);
+		Setup2(options.KeepAlive, options.Lifetime, options.MetadataMimeType, options.DataMimeType, data: data, metadata: metadata);
+	}
+
+	public void Setup2(TimeSpan keepalive, TimeSpan lifetime, string? metadataMimeType = null, string? dataMimeType = null, Memory<byte> data = default, Memory<byte> metadata = default)
+	{
+		var setup = new SetupCodec(
+			keepalive: (int)keepalive.TotalMilliseconds,
+			lifetime: (int)lifetime.TotalMilliseconds,
+			metadataMimeType: metadataMimeType ?? string.Empty,
+			dataMimeType: dataMimeType ?? string.Empty,
+			resumeToken: null,
+			dataLength: data.Length,
+			metadataLength: metadata.Length);
+
+		var frameBuffer = FrameBuffer.Create(setup.Length);
+		setup.Encode(frameBuffer, data: data, metadata: metadata);
+		Transport.SendAsync(frameBuffer);
 	}
 
 	/// <summary>A simplfied RSocket Client that operates only on UTF-8 strings.</summary>

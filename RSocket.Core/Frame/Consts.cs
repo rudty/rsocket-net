@@ -8,19 +8,21 @@ public static class Consts
 	private const int MaxMetadataLength = 16777215;
 	public const int SizeOfInt24 = (sizeof(UInt32) - 1); // 3 bytes
 	public const int SizeOfFrameLength= SizeOfInt24;
-	public const int SizeOfMetadataLength = SizeOfInt24;
+	public const int SizeOfMetadataHeaderLength = SizeOfInt24;
 
+	[Flags]
 	public enum HeaderFlags
 	{
+		SetupLease = Complete,  // 64
+		SetupResume = Follows,  // 128
+
+		// ToString 을 위해 SetupLease, SetupResume 를 위에 두고 나머지는 아래에 둠
 		None = 0,
 		Next = 1 << 5,          // 32
 		Complete = 1 << 6,		// 64
 		Follows = 1 << 7,		// 128
 		Metadata = 1 << 8,		// 256
 		Ignore = 1 << 9,		// 512
-
-		SetupLease = Complete,  // 64
-		SetupResume = Follows,  // 128
 
 		Mask = (1 << 10) - 1,	// 1023
 	}

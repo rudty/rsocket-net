@@ -138,6 +138,25 @@ public partial class RSocket1 : IRSocketProtocol
 		return new ValueTask<DataAndMetadata>(stream, stream.Version);
 	}
 
+	public ValueTask<DataAndMetadata> RequestResponse2(Memory<byte> data, Memory<byte> metadata = default, bool follows = false)
+	{
+		var stream = SingleResponseValueTaskSource<DataAndMetadata>.Create();
+		var streamId = RegisterDispatcher(stream);
+
+		var payload = new PayloadCodec(
+			streamId: streamId,
+			Consts.FrameType.Request_Response,
+			dataLength: data.Length,
+			metadataLength: metadata.Length,
+			complete: false,
+			next: false,
+			follows: follows);
+		var frameBuffer = FrameBuffer.Create(payload.Length);
+		payload.Encode(frameBuffer, metadata: metadata, data: data);
+		Transport.SendAsync(frameBuffer);
+		return new ValueTask<DataAndMetadata>(stream, stream.Version);
+	}
+
 	public void RequestFireAndForget(IRSocketStream stream, ReadOnlySequence<byte> data, ReadOnlySequence<byte> metadata = default)
 	{
 		var id = RegisterDispatcher(stream);

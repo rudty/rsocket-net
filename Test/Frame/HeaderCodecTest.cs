@@ -19,7 +19,7 @@ public class HeaderCodecTest
 
 		var totalLength = 123; // arbitrary frame length
 		var buffer = FrameBuffer.Create(64);
-		header.Write(buffer, totalLength);
+		header.Encode(buffer, totalLength);
 
 		var seq = new ReadOnlySequence<byte>(buffer.ReadOnlyMemory);
 		var reader = new SequenceReader<byte>(seq);
