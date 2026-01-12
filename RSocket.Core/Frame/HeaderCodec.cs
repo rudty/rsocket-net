@@ -1,6 +1,5 @@
 namespace RSocket.Frame;
 
-using System;
 using System.Buffers;
 
 public readonly struct HeaderCodec
@@ -12,15 +11,10 @@ public readonly struct HeaderCodec
 	public readonly Int32 streamId;
 	public readonly UInt16 frameTypeAndFlags;
 
-	public HeaderCodec(Consts.FrameType frameType, Int32 streamId, int metadataLength, Consts.HeaderFlags otherFlags = 0)
+	public HeaderCodec(Consts.FrameType frameType, Int32 streamId, Consts.HeaderFlags otherFlags = 0)
 	{
 		var flagLocal = ((int)frameType << FRAMETYPE_OFFSET) & FRAMETYPE_TYPE;
 		this.streamId = streamId;
-		if (metadataLength > 0)
-		{
-			flagLocal |= (int)Consts.HeaderFlags.Metadata;
-		}
-
 		flagLocal |= (int)otherFlags;
 		frameTypeAndFlags = (ushort)flagLocal;
 	}

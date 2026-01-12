@@ -15,7 +15,7 @@ public class HeaderCodecTest
 		var metadataLength = 5;
 		var otherFlags = Consts.HeaderFlags.Next | Consts.HeaderFlags.Follows;
 
-		var header = new HeaderCodec(Consts.FrameType.Payload, streamId, metadataLength, otherFlags);
+		var header = new HeaderCodec(Consts.FrameType.Payload, streamId, otherFlags);
 
 		var totalLength = 123; // arbitrary frame length
 		var buffer = FrameBuffer.Create(64);

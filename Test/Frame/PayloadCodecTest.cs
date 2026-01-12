@@ -18,14 +18,14 @@ public class PayloadCodecTest
 		var metadata = new Memory<byte>(metadataBytes);
 		var data = new Memory<byte>(dataBytes);
 
-		var payload = new PayloadCodec(
+		var initializer = FrameCodecInitializer.NewPayload(
 			streamId: streamId,
-			frameType: Consts.FrameType.Payload,
-			dataLength: data.Length,
-			metadataLength: metadata.Length,
 			follows: false,
 			complete: true,
-			next: true);
+			next: true,
+			dataLength: data.Length,
+			metadataLength: metadata.Length);
+		var payload = new ZeroSizeFrameCodec(initializer);
 
 		var buffer = FrameBuffer.Create(64);
 		payload.Encode(buffer, metadata, data);
@@ -36,7 +36,7 @@ public class PayloadCodecTest
 		Assert.True(reader.TryReadUInt24BigEndian(out var frameLength));
 
 		var header = new HeaderCodec(ref reader);
-		var decoded = new PayloadCodec(header, ref reader, frameLength);
+		var decoded = new ZeroSizeFrameCodec(header, ref reader, frameLength);
 
 		Assert.Equal(metadata.Length, decoded.MetadataLength);
 		Assert.Equal(data.Length, decoded.DataLength);
@@ -67,14 +67,14 @@ public class PayloadCodecTest
 		var dataBytes = Encoding.ASCII.GetBytes("payload");
 		var data = new Memory<byte>(dataBytes);
 
-		var payload = new PayloadCodec(
+		var initializer = FrameCodecInitializer.NewPayload(
 			streamId: streamId,
-			frameType: Consts.FrameType.Payload,
-			dataLength: data.Length,
-			metadataLength: 0,
 			follows: false,
-			complete: false,
-			next: true);
+			complete: true,
+			next: true,
+			dataLength: data.Length,
+			metadataLength: metadata.Length);
+		var payload = new ZeroSizeFrameCodec(initializer);
 
 		var buffer = FrameBuffer.Create(64);
 		payload.Encode(buffer, metadata, data);
@@ -85,7 +85,7 @@ public class PayloadCodecTest
 		Assert.True(reader.TryReadUInt24BigEndian(out var frameLength));
 
 		var header = new HeaderCodec(ref reader);
-		var decoded = new PayloadCodec(header, ref reader, frameLength);
+		var decoded = new ZeroSizeFrameCodec(header, ref reader, frameLength);
 
 		Assert.Equal(0, decoded.MetadataLength);
 		Assert.Equal(data.Length, decoded.DataLength);

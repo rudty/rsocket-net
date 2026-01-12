@@ -1,15 +1,11 @@
 namespace RSocket.Frame;
 
-using global::RSocket.Payloads;
 using System.Buffers;
-using System.Collections.ObjectModel;
 using System.Diagnostics;
-using System.Text;
-using static global::RSocket.RSocketProtocol;
 
-public readonly ref struct SetupCodec
+public readonly ref struct SetupCodec : IFrameBody
 {
-	private readonly HeaderCodec Header;
+	public readonly HeaderCodec Header { get; }
 	public readonly Int32 StreamId => Header.StreamId;
 	public readonly UInt16 MajorVersion { get; }
 	public readonly UInt16 MinorVersion { get; }
@@ -38,11 +34,10 @@ public readonly ref struct SetupCodec
 		Header = new HeaderCodec(
 			frameType: Consts.FrameType.Setup,
 			streamId: 0,
-			metadataLength: metadataLength,
 			headerFlags);
 
-		MajorVersion = MAJOR_VERSION;
-		MinorVersion = MINOR_VERSION;
+		MajorVersion = Consts.MAJOR_VERSION;
+		MinorVersion = Consts.MINOR_VERSION;
 		KeepAlive = keepalive;
 		Lifetime = lifetime;
 		ResumeToken = resumeToken ?? Array.Empty<byte>();
@@ -52,7 +47,7 @@ public readonly ref struct SetupCodec
 		DataLength = dataLength;
 	}
 
-	public SetupCodec(in HeaderCodec header, ref SequenceReader<byte> reader, int frameLength)
+	public SetupCodec(HeaderCodec header, ref SequenceReader<byte> reader, int frameLength)
 	{
 		Header = header;
 		reader.TryReadBigEndian(out UInt16 majorVersion);
@@ -96,7 +91,7 @@ public readonly ref struct SetupCodec
 		DataLength = frameLength - header.LengthWithMetadataHeader - InnerLength - MetadataLength;
 	}
 
-	private readonly int InnerLength =>
+	public readonly int InnerLength =>
 		sizeof(UInt16) + // MajorVersion
 		sizeof(UInt16) + // MinorVersion
 		sizeof(Int32) + // KeepAlive
@@ -111,7 +106,7 @@ public readonly ref struct SetupCodec
 
 	public void Encode(FrameBuffer frameBuffer, Memory<byte> data, Memory<byte> metadata)
 	{
-		var written = Header.Encode(frameBuffer, Length);
+		var written = IFrameBody.EncodeHeader(this, frameBuffer);
 		written += frameBuffer.WriteUInt16BigEndian(MajorVersion);
 		written += frameBuffer.WriteUInt16BigEndian(MinorVersion);
 		written += frameBuffer.WriteInt32BigEndian(KeepAlive);
@@ -126,14 +121,7 @@ public readonly ref struct SetupCodec
 		written += frameBuffer.WritePrefixByte(MetadataMimeType);
 		written += frameBuffer.WritePrefixByte(DataMimeType);
 
-		if (Header.HasMetadata)
-		{
-			written += frameBuffer.WriteInt24BigEndian(MetadataLength);
-			written += frameBuffer.Write(metadata.Span);
-		}
-
-		written += frameBuffer.Write(data.Span);
-
+		written += IFrameBody.EncodeMetadataAndData(this, frameBuffer, metadata, data);
 		Debug.Assert(written == Length);
 	}
 

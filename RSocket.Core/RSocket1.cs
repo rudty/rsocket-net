@@ -108,6 +108,8 @@ public partial class RSocket1 : IRSocketProtocol
 		var initialRequest = Options.GetInitialRequestSize(initial);
 		var enumerable = new StreamAsyncEnumerator<DataAndMetadata>();
 		var id = RegisterDispatcher(enumerable);
+
+		var initializer = FrameCodecInitializer.NewChannel(id, false, false, data.Length, metadata.Length);
 		var header = new RSocketProtocol.Header(
 			type: RSocketProtocol.Types.Request_Stream,
 			streamId: id,
@@ -143,14 +145,13 @@ public partial class RSocket1 : IRSocketProtocol
 		var stream = SingleResponseValueTaskSource<DataAndMetadata>.Create();
 		var streamId = RegisterDispatcher(stream);
 
-		var payload = new PayloadCodec(
+		var initializer = FrameCodecInitializer.NewRequestResponse(
 			streamId: streamId,
-			Consts.FrameType.Request_Response,
+			follows: follows,
 			dataLength: data.Length,
-			metadataLength: metadata.Length,
-			complete: false,
-			next: false,
-			follows: follows);
+			metadataLength: metadata.Length);
+
+		var payload = new ZeroSizeFrameCodec(initializer);
 		var frameBuffer = FrameBuffer.Create(payload.Length);
 		payload.Encode(frameBuffer, metadata: metadata, data: data);
 		Transport.SendAsync(frameBuffer);

@@ -3,7 +3,11 @@ namespace RSocket.Frame;
 using System;
 using System.Buffers;
 
-public readonly ref struct PayloadCodec : IFrameBody
+/// <summary>
+/// Header(4 + 2), Data, Metadata 제외하고 자체적인 크기가 0인 Frame Codec
+/// Payload, RequestResponse, FireAndForget, MetadataPush
+/// </summary>
+public readonly ref struct ZeroSizeFrameCodec : IFrameBody
 {
 	public readonly HeaderCodec Header { get; }
 	public readonly Int32 StreamId => Header.StreamId;
@@ -12,42 +16,17 @@ public readonly ref struct PayloadCodec : IFrameBody
 	public readonly int InnerLength => 0;
 	public readonly int Length => IFrameBody.GetLength(this);
 
-	public PayloadCodec(int streamId, Consts.FrameType frameType, int dataLength, int metadataLength, bool follows = false, bool complete = false, bool next = false)    //TODO Parameter ordering, isn't Next much more likely than C or F?
+	public ZeroSizeFrameCodec(FrameCodecInitializer initializer)
 	{
-		var headerFlags = Consts.HeaderFlags.None;
-		if (follows)
-		{
-			headerFlags |= Consts.HeaderFlags.Follows;
-		}
-
-		if (complete)
-		{
-			headerFlags |= Consts.HeaderFlags.Complete;
-		}
-
-		if (next)
-		{
-			headerFlags |= Consts.HeaderFlags.Next;
-		}
-
-		if (metadataLength > 0)
-		{
-			headerFlags |= Consts.HeaderFlags.Metadata;
-		}
-
-		Header = new HeaderCodec(
-			frameType: frameType,
-			streamId: streamId,
-			metadataLength: metadataLength,
-			headerFlags);
-		DataLength = dataLength;
-		MetadataLength = metadataLength;
+		Header = initializer.CreateHeader();
+		DataLength = initializer.DataLength;
+		MetadataLength = initializer.MetadataLength;
 	}
 
-	public PayloadCodec(HeaderCodec header, ref SequenceReader<byte> reader, int frameLength)
+	public ZeroSizeFrameCodec(HeaderCodec header, ref SequenceReader<byte> reader, int frameLength)
 	{
 		Header = header;
-		
+
 		if (header.HasMetadata && reader.TryReadUInt24BigEndian(out var length))
 		{
 			MetadataLength = length;
@@ -65,5 +44,5 @@ public readonly ref struct PayloadCodec : IFrameBody
 	public ReadOnlySequence<byte> ReadMetadata(in SequenceReader<byte> reader) => reader.Sequence.Slice(reader.Position, MetadataLength);
 	public ReadOnlySequence<byte> ReadData(in SequenceReader<byte> reader) => reader.Sequence.Slice(reader.Sequence.GetPosition(MetadataLength, reader.Position), DataLength);
 
-	public override string ToString() => $"{Header.ToString()} Metadata[{MetadataLength}], Data[{DataLength}]";
+	public override string ToString() => $"{Header} Metadata[{MetadataLength}], Data[{DataLength}]";
 }

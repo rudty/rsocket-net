@@ -553,7 +553,6 @@ namespace RSocket
 			}
 		}
 
-
 		public ref struct MetadataPush
 		{
 			public bool HasMetadata { get => Header.HasMetadata; set => Header.HasMetadata = value; }

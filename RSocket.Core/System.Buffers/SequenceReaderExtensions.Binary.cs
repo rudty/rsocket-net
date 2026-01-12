@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
@@ -25,23 +25,23 @@ namespace System.Buffers
 		/// True if successful. <paramref name="value"/> will be default if failed (due to lack of space).
 		/// </returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static unsafe bool TryRead<T>(ref this SequenceReader<byte> reader, out T value) 
+		internal static unsafe bool TryRead<T>(ref this SequenceReader<byte> reader, out T value)
 			where T : unmanaged, IBinaryInteger<T>
-        {
-            int size = Unsafe.SizeOf<T>();
-            ReadOnlySpan<byte> span = reader.UnreadSpan;
+		{
+			int size = Unsafe.SizeOf<T>();
+			ReadOnlySpan<byte> span = reader.UnreadSpan;
 
-            // Fast Path: 현재 세그먼트에 충분한 데이터가 있는 경우
-            if (span.Length >= size)
-            {
-                value = Unsafe.ReadUnaligned<T>(ref MemoryMarshal.GetReference(span));
-                reader.Advance(size);
-                return true;
-            }
+			// Fast Path: 현재 세그먼트에 충분한 데이터가 있는 경우
+			if (span.Length >= size)
+			{
+				value = Unsafe.ReadUnaligned<T>(ref MemoryMarshal.GetReference(span));
+				reader.Advance(size);
+				return true;
+			}
 
-            // Slow Path: 여러 세그먼트에 걸쳐 있는 경우
-            return TryReadMultisegment(ref reader, out value);
-        }
+			// Slow Path: 여러 세그먼트에 걸쳐 있는 경우
+			return TryReadMultisegment(ref reader, out value);
+		}
 
 		private static unsafe bool TryReadMultisegment<T>(ref SequenceReader<byte> reader, out T value) 
 			where T : unmanaged, IBinaryInteger<T>
@@ -59,20 +59,6 @@ namespace System.Buffers
             value = default;
             return false;
         }
-
-		/// <summary>
-		/// Reads an <see cref="Int16"/> as little endian.
-		/// </summary>
-		/// <returns>False if there wasn't enough data for an <see cref="Int16"/>.</returns>
-		public static bool TryReadLittleEndian(ref this SequenceReader<byte> reader, out ushort value)
-		{
-			if (BitConverter.IsLittleEndian)
-			{
-				return reader.TryRead(out value);
-			}
-
-			return TryReadReverseEndianness(ref reader, out value);
-		}
 
 		/// <summary>
 		/// Reads an <see cref="Int16"/> as big endian.
